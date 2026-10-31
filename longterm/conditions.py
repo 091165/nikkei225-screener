@@ -311,7 +311,9 @@ def verdict(a: dict, b: dict, c: dict, d: dict, rs: dict, po: dict) -> dict:
     elif d["pass"] is False:
         code = "weak_fundamentals"
     elif a["pass"]:
-        code = "strong_buy" if (rs.get("pass") or po.get("pass")) else "buy"
+        # 相対的な強さは「指数暴落点の日」の比較なので、指数要因の暴落点のときだけ数える
+        strong = bool((rs.get("pass") and a.get("a1_index")) or po.get("pass"))
+        code = "strong_buy" if strong else "buy"
     else:
         code = "watch"
     return {"code": code, "label": VERDICT_LABELS[code], "reasons": reasons}

@@ -178,7 +178,9 @@ def backtest_stock(ticker: str, name: str, df: pd.DataFrame, fin: dict | None, i
         fin_d = financials_as_of(fin, d, bcfg.get("financial_lag_months", 3))
         dd = C.condition_d(fin_d.get("income"), fin_d.get("quarterly_income"), fin_d.get("cashflow"),
                            fin_d.get("balance"), cfg)
-        rs = C.relative_strength(dev_d, index_dev.loc[:d], idx_d) if idx_d else {"pass": None}
+        # 相対的な強さは指数要因の暴落点（指数暴落点の日）でだけ判定する
+        rs = (C.relative_strength(dev_d, index_dev.loc[:d], idx_d)
+              if idx_d and p.kind in ("index", "both") else {"pass": None})
         po = C.monthly_perfect_order(close_d, cfg)
         d_status = "未判定" if dd["pass"] is None else ("合格" if dd["pass"] else "不合格")
         enter = bool(b["pass"] and c["pass"] and dd["pass"] is not False)

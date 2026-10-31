@@ -182,9 +182,13 @@ def test_stock_crash_points_merges_overlapping():
     (True, True, False, True, True, "skip"),
     (True, True, True, False, True, "weak_fundamentals"),
     (True, True, True, None, True, "insufficient"),
+    ("individual", True, True, True, True, "buy"),   # 個別要因の暴落点では相対的な強さを数えない
 ])
 def test_verdict(a, b, c, d, rs, expected):
-    A = {"pass": a, "a1_index": a, "a2_individual": False, "date": "2024-08-05"}
+    if a == "individual":
+        A = {"pass": True, "a1_index": False, "a2_individual": True, "date": "2024-08-05"}
+    else:
+        A = {"pass": a, "a1_index": a, "a2_individual": False, "date": "2024-08-05"}
     B = {"pass": b, "exception": False, "high_date": "2024-07-11", "days_since_high": 25}
     Cc = {"pass": c, "prev_date": "2024-04-19", "prev_low": 100.0, "latest_date": "2024-08-05", "latest_low": 120.0}
     D = {"pass": d, "revenue_streak": 3, "net_income_streak": 3, "reason": None}
