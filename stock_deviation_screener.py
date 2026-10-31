@@ -53,7 +53,7 @@ NASDAQ100 = {
     "AAPL": "Apple", "ABNB": "Airbnb", "ADBE": "Adobe", "ADI": "Analog Devices",
     "ADP": "ADP", "ADSK": "Autodesk", "AEP": "American Electric Power",
     "AMAT": "Applied Materials", "AMD": "AMD", "AMGN": "Amgen",
-    "AMZN": "Amazon", "ANSS": "ANSYS", "APP": "AppLovin", "ARM": "Arm Holdings",
+    "AMZN": "Amazon", "APP": "AppLovin", "ARM": "Arm Holdings",
     "ASML": "ASML", "AVGO": "Broadcom", "AZN": "AstraZeneca",
     "BIIB": "Biogen", "BKNG": "Booking Holdings", "BKR": "Baker Hughes",
     "CDNS": "Cadence Design", "CDW": "CDW", "CEG": "Constellation Energy",
@@ -62,7 +62,7 @@ NASDAQ100 = {
     "CSCO": "Cisco", "CSGP": "CoStar Group", "CTAS": "Cintas",
     "CTSH": "Cognizant", "DASH": "DoorDash", "DDOG": "Datadog",
     "DLTR": "Dollar Tree", "DXCM": "DexCom",
-    "EA": "Electronic Arts", "EXC": "Exelon",
+    "EXC": "Exelon",
     "FANG": "Diamondback Energy", "FAST": "Fastenal", "FTNT": "Fortinet",
     "GEHC": "GE HealthCare", "GFS": "GlobalFoundries", "GILD": "Gilead",
     "GOOG": "Alphabet C", "GOOGL": "Alphabet A",
@@ -83,7 +83,7 @@ NASDAQ100 = {
     "SNPS": "Synopsys", "TEAM": "Atlassian", "TMUS": "T-Mobile",
     "TSLA": "Tesla", "TTD": "The Trade Desk", "TTWO": "Take-Two",
     "TXN": "Texas Instruments", "VRSK": "Verisk Analytics", "VRTX": "Vertex Pharma",
-    "WBD": "Warner Bros Discovery", "WDAY": "Workday", "XEL": "Xcel Energy",
+    "WDAY": "Workday", "XEL": "Xcel Energy",
     "ZS": "Zscaler",
 }
 
@@ -113,7 +113,7 @@ SP500_ARISTOCRATS = {
     "CHRW": "C.H. Robinson", "FDS": "FactSet", "FAST": "Fastenal",
     "KVUE": "Kenvue", "NDSN": "Nordson", "POOL": "Pool Corp",
     "SJM": "J.M. Smucker", "SPGI": "S&P Global", "STE": "Steris",
-    "TFC": "Truist Financial", "WBA": "Walgreens",
+    "TFC": "Truist Financial",
 }
 
 # S&P500高配当（4%以上、配当貴族と重複しないもの）
