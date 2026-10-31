@@ -69,7 +69,7 @@ def fetch_and_calc(ticker_symbol: str, name: str) -> dict | None:
         df.columns = ["close"]
         df["sma25"] = df["close"].rolling(window=SMA_PERIOD).mean()
         df["deviation"] = ((df["close"] - df["sma25"]) / df["sma25"]) * 100
-        df.dropna(inplace=True)
+        df = df.dropna()
 
         # 統計量
         dev = df["deviation"]
