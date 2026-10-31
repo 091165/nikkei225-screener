@@ -2,11 +2,13 @@
 
 import math
 
+import numpy as np
 import pandas as pd
 
 from . import conditions as C
 from .crash import build_crash_points, index_threshold, legacy_lower_band, stock_crash_points
 from .indicators import deviation, ideal_deviation
+from .market import monthly_seasonality
 
 
 def _clean(obj):
@@ -20,6 +22,35 @@ def _clean(obj):
     if hasattr(obj, "item"):          # numpy スカラー
         return _clean(obj.item())
     return obj
+
+
+def chart_series(df: pd.DataFrame, dev: pd.Series, daily_years: int = 3, total_years: int = 15) -> dict:
+    """詳細画面のチャート用データ。直近 daily_years 年は日足、それより前（最大 total_years 年）は週足。"""
+    end = df.index[-1]
+    start = end - pd.DateOffset(years=total_years)
+    split = end - pd.DateOffset(years=daily_years)
+    d = pd.DataFrame({"c": df["close"], "v": dev}).loc[start:]
+    old = d.loc[:split].resample("W-FRI").last().dropna(subset=["c"])
+    new = d.loc[split:].iloc[1:]
+    d = pd.concat([old, new])
+    return {"d": [x.strftime("%Y-%m-%d") for x in d.index],
+            "c": [float(f"{v:.4g}") for v in d["c"]],
+            "v": [None if pd.isna(v) else round(float(v), 2) for v in d["v"]]}
+
+
+def ath_marks(close: pd.Series, since: pd.Timestamp) -> list[str]:
+    """上場来高値を更新した日（月に1回まで）。"""
+    prev_max = close.cummax().shift(1)
+    new_high = close[(close > prev_max)].loc[since:]
+    if new_high.empty:
+        return []
+    firsts = new_high.groupby(new_high.index.to_period("M")).head(1)
+    return [x.strftime("%Y-%m-%d") for x in firsts.index]
+
+
+def histogram(dev: pd.Series, bins: int = 40) -> dict:
+    counts, edges = np.histogram(dev.dropna().values, bins=bins)
+    return {"counts": [int(c) for c in counts], "edges": [round(float(e), 2) for e in edges]}
 
 
 def evaluate_index(ticker: str, df: pd.DataFrame, icfg: dict, cfg: dict, as_of=None) -> dict:
@@ -100,7 +131,20 @@ def evaluate_stock(ticker: str, name: str, market: str, df: pd.DataFrame, fin: d
             "bottoming": bot,
         },
         "verdict": v,
+        "chart": chart_series(df, dev),
+        "ath_marks": ath_marks(close, close.index[-1] - pd.DateOffset(years=15)),
+        "histogram": histogram(dev),
+        "seasonality": monthly_seasonality(close, years=20),
+        "dev_at_last_index_crash": None,
     }
+    if main_index and main_index["points"]:
+        d_last = pd.Timestamp(main_index["points"][-1].date)
+        pos = dev.index.searchsorted(d_last)
+        if pos < len(dev) and (dev.index[pos] - d_last).days <= 7:
+            out["dev_at_last_index_crash"] = {"date": main_index["points"][-1].date,
+                                              "stock_dev": float(dev.iloc[pos]),
+                                              "index_dev": float(main_index["dev"].loc[d_last])
+                                              if d_last in main_index["dev"].index else None}
     if out["legacy_lower_band"]:
         out["legacy_lower_band"]["diff_from_lower2"] = out["legacy_lower_band"]["threshold"] - ideal["lower2"]
     if extra:
@@ -124,4 +168,8 @@ def summary_row(r: dict) -> dict:
         "relative_strength": r["signals"]["relative_strength"].get("pass"),
         "monthly_po": r["signals"]["monthly_perfect_order"].get("pass"),
         "div_yield": (r.get("extra") or {}).get("div_yield"),
+        "sector": (r.get("extra") or {}).get("sector"),
+        "lower2": r["ideal"]["lower2"],
+        "dev_at_last_index_crash": (r.get("dev_at_last_index_crash") or {}).get("stock_dev"),
+        "bottoming": r["signals"]["bottoming"].get("pass"),
     }

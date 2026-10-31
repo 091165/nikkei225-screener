@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>理想乖離ダッシュボード — 長期（暴落点）</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0a0e17;--s1:#111827;--s2:#1a2235;--bd:#1e2a3a;--tx:#e2e8f0;--dim:#64748b;--ac:#38bdf8;--red:#ef4444;--org:#f97316;--ylw:#eab308;--grn:#22c55e;--prp:#a855f7;--pnk:#ec4899;
+  --v-strong:#0d9488;--v-buy:#2563eb;--v-watch:#38bdf8;--v-skip:#334155}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP','JetBrains Mono',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+.nav{display:flex;border-bottom:2px solid var(--bd);background:var(--s1);overflow-x:auto}
+.nav a{padding:0.8rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:600;color:var(--dim);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.nav a.nav-active{color:var(--ac);border-bottom-color:var(--ac)}
+header{padding:1.2rem 1rem 0.8rem;border-bottom:1px solid var(--bd)}
+header h1{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--ac),#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.meta{font-size:0.72rem;color:var(--dim);margin-top:0.3rem}
+.wrap{max-width:1300px;margin:0 auto;padding:1rem}
+.note{font-size:0.72rem;color:var(--dim);border-left:3px solid var(--ylw);padding:0.4rem 0.6rem;background:var(--s1);border-radius:4px;margin:0.6rem 0}
+.seg{display:inline-flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--dim);padding:0.45rem 0.9rem;font-size:0.8rem;cursor:pointer;font-family:inherit}
+.seg button.on{background:var(--ac);color:var(--bg);font-weight:700}
+.sec{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;margin:1.4rem 0 0.6rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0.7rem}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.9rem}
+.card h3{font-size:0.8rem;color:var(--dim);font-weight:600;margin-bottom:0.4rem}
+.big{font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:700}
+.kv{display:flex;justify-content:space-between;font-size:0.75rem;padding:2px 0;border-bottom:1px dashed var(--bd)}
+.kv span:first-child{color:var(--dim)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;cursor:pointer;white-space:nowrap}
+.sev-none{background:rgba(34,197,94,0.15);color:var(--grn)}
+.sev-small{background:rgba(234,179,8,0.2);color:var(--ylw)}
+.sev-medium{background:rgba(249,115,22,0.25);color:var(--org)}
+.sev-large{background:var(--red);color:#fff}
+.v-strong_buy{background:var(--v-strong);color:#fff}
+.v-buy{background:var(--v-buy);color:#fff}
+.v-watch{border:1px dashed var(--v-watch);color:var(--v-watch)}
+.v-skip{background:var(--v-skip);color:#94a3b8}
+.v-weak_fundamentals,.v-insufficient{border:1px solid var(--bd);color:var(--dim)}
+.weak{background:rgba(239,68,68,0.2);color:var(--red)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem}
+.mini{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:0.55rem;cursor:pointer}
+.mini:hover{border-color:var(--ac)}
+.mini .t{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.8rem}
+.mini .n{font-size:0.7rem;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .m{font-size:0.68rem;margin-top:3px;font-family:'JetBrains Mono',monospace}
+.filters{display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin:0.6rem 0}
+.chip{border:1px solid var(--bd);background:transparent;color:var(--dim);padding:0.35rem 0.7rem;border-radius:999px;font-size:0.72rem;cursor:pointer;font-family:inherit}
+.chip.on{border-color:var(--ac);color:var(--ac);background:rgba(56,189,248,0.1)}
+input.search{padding:0.4rem 0.7rem;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:0.75rem;width:180px}
+.tw{overflow:auto;border:1px solid var(--bd);border-radius:8px;background:var(--s1);max-height:75vh}
+table{width:100%;border-collapse:collapse;font-size:0.74rem}
+th{position:sticky;top:0;background:var(--s2);padding:0.5rem 0.55rem;text-align:left;font-size:0.65rem;color:var(--dim);white-space:nowrap;cursor:pointer;user-select:none;z-index:2}
+th:hover{color:var(--ac)}
+td{padding:0.42rem 0.55rem;border-bottom:1px solid var(--bd);white-space:nowrap;font-family:'JetBrains Mono',monospace}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:rgba(56,189,248,0.05)}
+.neg{color:var(--red)}.pos{color:var(--grn)}.dim{color:var(--dim)}.ok{color:var(--grn)}.ng{color:var(--red)}
+.pop{position:fixed;z-index:60;max-width:340px;background:var(--s2);border:1px solid var(--ac);border-radius:8px;padding:0.6rem 0.7rem;font-size:0.72rem;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:50;display:none;align-items:flex-start;justify-content:center;overflow-y:auto}
+.modal.open{display:flex}
+.panel{background:var(--bg);border:1px solid var(--bd);border-radius:12px;width:min(1000px,100%);margin:2rem 0.5rem;padding:1rem;position:relative}
+.close{position:absolute;top:0.6rem;right:0.8rem;background:transparent;border:0;color:var(--dim);font-size:1.4rem;cursor:pointer}
+.reasons{font-size:0.75rem;line-height:1.8;margin:0.5rem 0}
+.cv{position:relative;height:280px}
+.cv.small{height:180px}
+details summary{cursor:pointer;color:var(--ac);font-size:0.78rem;margin:0.4rem 0}
+.months{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;align-items:end;height:110px;margin-top:0.4rem}
+.mbar{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:0.55rem;color:var(--dim)}
+.mbar i{display:block;width:100%;border-radius:2px 2px 0 0}
+.mbar.cur{color:var(--tx);font-weight:700}
+.mbar.cur i{outline:2px solid var(--ac)}
+@media (max-width:640px){.panel{margin:0;border-radius:0;min-height:100vh}.cv{height:220px}.big{font-size:1.3rem}input.search{width:100%}}
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="index.html">🇯🇵 日本株</a>
+  <a href="us.html">🇺🇸 米国株</a>
+  <a href="longterm.html" class="nav-active">📉 長期（暴落点）</a>
+</div>
+<header>
+  <h1>長期（暴落点）</h1>
+  <div class="meta" id="meta">読み込み中…</div>
+</header>
+<div class="wrap">
+  <div class="seg" id="region"><button data-r="jp" class="on">日本株</button><button data-r="us">米国株</button></div>
+  <div class="note">ルールは機械的な目安です。最終判断はチャートを自分の目で確認してください。</div>
+
+  <div class="sec">地合い</div>
+  <div class="grid" id="market"></div>
+  <div id="weakRank"></div>
+  <details><summary>過去の暴落点一覧</summary><div class="tw" style="max-height:50vh"><table id="crashTbl"></table></div></details>
+
+  <div class="sec">今日の長期買い候補</div>
+  <div class="cards" id="buyCards"></div>
+  <div class="sec">次の暴落で買う監視リスト（上位20）</div>
+  <div class="cards" id="watchCards"></div>
+
+  <div class="sec">全銘柄</div>
+  <div class="filters" id="vFilters"></div>
+  <div class="filters">
+    <button class="chip" data-f="index">指数要因</button>
+    <button class="chip" data-f="individual">個別要因</button>
+    <button class="chip" data-f="growth">成長株のみ</button>
+    <button class="chip" data-f="yield">高配当のみ</button>
+    <input class="search" id="q" placeholder="コード・銘柄名で検索">
+  </div>
+  <div class="tw"><table id="tbl"></table></div>
+</div>
+
+<div class="modal" id="modal"><div class="panel" id="panel"></div></div>
+
+<script>
+const BASE = 'data/longterm/';
+const VERDICTS = {strong_buy:'長期買い強', buy:'長期買い', watch:'監視', skip:'見送り', weak_fundamentals:'業績未達', insufficient:'判定不能'};
+const SEV = {small:'小暴落', medium:'中暴落', large:'大暴落'};
+const KIND = {index:'指数', individual:'個別', both:'指数・個別'};
+const state = {region:'jp', verdicts:new Set(), flags:new Set(), q:'', sort:{key:'verdict', asc:true}};
+let summary = null, market = null, charts = [];
+
+const f1 = v => v == null ? '—' : (+v).toFixed(1);
+const pct = v => v == null ? '—' : `<span class="${v < 0 ? 'neg' : 'pos'}">${(+v).toFixed(1)}%</span>`;
+const yn = v => v == null ? '<span class="dim">—</span>' : (v ? '<span class="ok">✔</span>' : '<span class="ng">✖</span>');
+const num = v => v == null ? '—' : (+v).toLocaleString('ja-JP', {maximumFractionDigits: v < 100 ? 2 : 0});
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isJP = r => r.ticker.endsWith('.T');
+const VORDER = {strong_buy:0, buy:1, watch:2, insufficient:3, weak_fundamentals:4, skip:5};
+
+async function load() {
+  try {
+    [summary, market] = await Promise.all([fetch(BASE + 'summary.json').then(r => r.json()),
+                                           fetch(BASE + 'market.json').then(r => r.json())]);
+  } catch (e) {
+    document.getElementById('meta').textContent = 'データを読み込めませんでした（まだ生成されていない可能性があります）';
+    return;
+  }
+  document.getElementById('meta').textContent = `更新: ${summary.generated_at}　/　${summary.stocks.length}銘柄`;
+  renderVerdictFilters();
+  render();
+}
+
+function rows() {
+  return summary.stocks.filter(r => state.region === 'jp' ? isJP(r) : !isJP(r));
+}
+
+function sevBadge(s) {
+  return s ? `<span class="badge sev-${s}">${SEV[s]}</span>` : '<span class="badge sev-none">平常</span>';
+}
+
+function renderMarket() {
+  const m = market[state.region];
+  const el = document.getElementById('market');
+  let html = '';
+  for (const ix of m.indices) {
+    const name = {'^N225':'日経平均','^GSPC':'S&P500','^DJI':'ダウ'}[ix.ticker] || ix.ticker;
+    html += `<div class="card"><h3>${name}（${ix.as_of}）</h3>
+      <div class="big ${ix.deviation < 0 ? 'neg' : 'pos'}">${ix.deviation.toFixed(2)}%</div>
+      <div style="margin:4px 0">${sevBadge(ix.severity_now)} <span class="dim" style="font-size:0.7rem">25日乖離率</span></div>
+      <div class="kv"><span>理想乖離 -2σ / -3σ</span><span class="mono">${f1(ix.lower2)}% / ${f1(ix.lower3)}%</span></div>
+      <div class="kv"><span>-2σまで</span><span class="mono">${f1(ix.dist_to_lower2)}pt</span></div>
+      <div class="kv"><span>暴落点のしきい値</span><span class="mono">${f1(ix.threshold)}%</span></div>
+      <div class="kv"><span>最後の暴落点</span><span class="mono">${ix.last_crash || '—'}（${ix.days_since_last_crash ?? '—'}日前）</span></div>
+      <div class="kv"><span>判定リセット日</span><span class="mono">${ix.reset_date || '—'} ${ix.armed ? '<span class="ok">（リセット済み）</span>' : ''}</span></div>
+    </div>`;
+  }
+  const b = m.breadth || {};
+  html += `<div class="card"><h3>地合いの悪さ（${state.region === 'jp' ? '日経225採用' : '米国株'} ${b.n || 0}銘柄）</h3>
+    ${b.weak ? '<span class="badge weak">地合い悪化</span>' : '<span class="badge sev-none">通常</span>'}
+    <div class="kv"><span>当日下落した銘柄</span><span class="mono">${f1(b.down_pct)}%</span></div>
+    <div class="kv"><span>25日線より下の銘柄</span><span class="mono">${f1(b.below_ma_pct)}%</span></div></div>`;
+  const ix0 = m.indices[0];
+  const now = new Date(), cur = now.getMonth() + 1, next = cur % 12 + 1;
+  const vals = ix0.seasonality.map(s => s.avg ?? 0), mx = Math.max(...vals.map(Math.abs), 0.1);
+  html += `<div class="card"><h3>月別アノマリー（${ix0.ticker}、全期間の月足）</h3><div class="months">` +
+    ix0.seasonality.map(s => {
+      const h = Math.abs(s.avg ?? 0) / mx * 80;
+      return `<div class="mbar ${s.month === cur || s.month === next ? 'cur' : ''}" title="${s.month}月 平均${f1(s.avg)}% 勝率${f1(s.win_rate)}%">
+        <span>${f1(s.avg)}</span><i style="height:${h}px;background:${(s.avg ?? 0) >= 0 ? 'var(--grn)' : 'var(--red)'}"></i><span>${s.month}</span></div>`;
+    }).join('') + `</div><div class="dim" style="font-size:0.65rem;margin-top:4px">今月（${cur}月）勝率 ${f1(ix0.seasonality[cur-1].win_rate)}% ／ 来月（${next}月）勝率 ${f1(ix0.seasonality[next-1].win_rate)}%</div></div>`;
+  el.innerHTML = html;
+
+  // 地合い悪化時: 下方乖離が深い順（業績が不合格でないもの）
+  const wr = document.getElementById('weakRank');
+  if (b.weak) {
+    const list = rows().filter(r => r.d !== false).sort((a, c) => a.deviation - c.deviation).slice(0, 10);
+    wr.innerHTML = `<div class="sec">地合い悪化中：下方乖離が深い順（業績に問題が見つかっていない銘柄）</div><div class="cards">${list.map(miniCard).join('')}</div>`;
+  } else wr.innerHTML = '';
+
+  document.getElementById('crashTbl').innerHTML = `<thead><tr><th>暴落点</th><th>最大乖離率</th><th>暴落度</th><th>3か月後</th><th>6か月後</th><th>12か月後</th><th>メモ</th></tr></thead><tbody>` +
+    [...ix0.crashes].reverse().map(c => `<tr><td>${c.date}</td><td>${pct(c.min_deviation)}</td><td>${c.severity ? SEV[c.severity] : '—'}</td>
+      <td>${pct(c.ret_3m)}</td><td>${pct(c.ret_6m)}</td><td>${pct(c.ret_12m)}</td><td style="font-family:inherit">${esc(c.note || '')}</td></tr>`).join('') + '</tbody>';
+}
+
+function miniCard(r) {
+  return `<div class="mini" data-t="${esc(r.ticker)}"><div class="t">${esc(r.ticker)} ${vBadge(r)}</div><div class="n">${esc(r.name)}</div>
+    <div class="m">乖離 ${pct(r.deviation)}　-2σまで ${f1(r.dist_to_lower2)}%</div></div>`;
+}
+
+function vBadge(r) {
+  return `<span class="badge v-${r.verdict}" data-why="${esc(r.ticker)}">${VERDICTS[r.verdict]}</span>`;
+}
+
+function renderCards() {
+  const rs = rows();
+  const buys = rs.filter(r => r.verdict === 'strong_buy' || r.verdict === 'buy').sort((a, b) => VORDER[a.verdict] - VORDER[b.verdict]);
+  document.getElementById('buyCards').innerHTML = buys.length ? buys.map(miniCard).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">今日は該当なし（暴落点が来ていないか、条件B〜Dを満たす銘柄がない）</div>';
+  const watch = rs.filter(r => r.verdict === 'watch').sort((a, b) => a.dist_to_lower2 - b.dist_to_lower2).slice(0, 20);
+  document.getElementById('watchCards').innerHTML = watch.length ? watch.map(miniCard).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">該当なし</div>';
+}
+
+function renderVerdictFilters() {
+  document.getElementById('vFilters').innerHTML = Object.entries(VERDICTS).map(([k, v]) => `<button class="chip" data-v="${k}">${v}</button>`).join('');
+}
+
+const COLS = [
+  ['verdict', '判定'], ['ticker', 'コード'], ['name', '銘柄名'], ['sector', 'セクター'], ['price', '株価'],
+  ['deviation', '25日乖離'], ['dist_to_lower2', '-2σまで'], ['latest_crash_date', '直近暴落点'],
+  ['days_since_high', 'B 高値から'], ['c_streak', 'C 切上回数'], ['revenue_streak', 'D 連続増'],
+  ['relative_strength', '相対強さ'], ['monthly_po', '月足PO'], ['div_yield', '配当']
+];
+
+function renderTable() {
+  let rs = rows();
+  const yieldTh = state.region === 'jp' ? 4 : 6;
+  if (state.verdicts.size) rs = rs.filter(r => state.verdicts.has(r.verdict));
+  if (state.flags.has('index')) rs = rs.filter(r => r.latest_crash_kind === 'index' || r.latest_crash_kind === 'both');
+  if (state.flags.has('individual')) rs = rs.filter(r => r.latest_crash_kind === 'individual' || r.latest_crash_kind === 'both');
+  if (state.flags.has('growth')) rs = rs.filter(r => r.growth_stock);
+  if (state.flags.has('yield')) rs = rs.filter(r => (r.div_yield || 0) >= yieldTh);
+  if (state.q) { const q = state.q.toLowerCase(); rs = rs.filter(r => r.ticker.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q)); }
+  const {key, asc} = state.sort;
+  const val = r => key === 'verdict' ? VORDER[r.verdict] * 1000 + (r.dist_to_lower2 ?? 0) : r[key];
+  rs.sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1); });
+  const t = document.getElementById('tbl');
+  t.innerHTML = `<thead><tr>${COLS.map(([k, l]) => `<th data-k="${k}">${l}${state.sort.key === k ? (asc ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
+    rs.map(r => `<tr data-t="${esc(r.ticker)}">
+      <td>${vBadge(r)}</td><td>${esc(r.ticker)}</td><td style="font-family:inherit">${esc(r.name)}</td><td class="dim" style="font-family:inherit">${esc(r.sector || '')}</td>
+      <td>${num(r.price)}</td><td>${pct(r.deviation)}</td><td>${f1(r.dist_to_lower2)}%</td>
+      <td>${r.latest_crash_date || '—'} <span class="dim">${KIND[r.latest_crash_kind] || ''}</span></td>
+      <td>${r.days_since_high ?? '—'}日${r.b_exception ? '<span class="dim">*</span>' : ''} ${yn(r.b)}</td>
+      <td>${r.c_streak} ${yn(r.c)}</td>
+      <td>売${r.revenue_streak}/益${r.net_income_streak} ${yn(r.d)}${r.growth_stock ? ' <span class="pos">成長</span>' : ''}</td>
+      <td>${yn(r.relative_strength)}</td><td>${yn(r.monthly_po)}</td><td>${r.div_yield ? (+r.div_yield).toFixed(2) + '%' : '—'}</td></tr>`).join('') + '</tbody>';
+}
+
+function render() { renderMarket(); renderCards(); renderTable(); }
+
+// ─── 「なぜその判定か」ポップアップ ───
+const detailCache = {};
+async function getDetail(t) {
+  if (!detailCache[t]) detailCache[t] = await fetch(BASE + 'stocks/' + encodeURIComponent(t) + '.json').then(r => r.json());
+  return detailCache[t];
+}
+function closePop() { document.querySelectorAll('.pop').forEach(p => p.remove()); }
+async function showWhy(t, x, y) {
+  closePop();
+  const d = await getDetail(t);
+  const p = document.createElement('div');
+  p.className = 'pop';
+  p.innerHTML = `<b>${esc(d.name)}：${esc(d.verdict.label)}</b><br>` + d.verdict.reasons.map(esc).join('<br>');
+  document.body.appendChild(p);
+  const w = p.offsetWidth, h = p.offsetHeight;
+  p.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + 'px';
+  p.style.top = Math.max(8, Math.min(y + 12, innerHeight - h - 8)) + 'px';
+}
+
+// ─── 詳細画面 ───
+async function openDetail(t) {
+  const d = await getDetail(t);
+  charts.forEach(c => c.destroy()); charts = [];
+  const panel = document.getElementById('panel');
+  const lc = d.latest_crash, A = d.A, B = d.B, C = d.C, D = d.D, S = d.signals;
+  const ideal = d.ideal, lb = d.legacy_lower_band;
+  const annual = (D.annual || []).map((a, i, arr) => {
+    const p = arr[i - 1];
+    const g = (x, y) => p ? `${(((x - y) / Math.abs(y)) * 100).toFixed(1)}%` : '—';
+    return `<tr><td>${a.period}</td><td>${num(a.revenue / 1e8)}億</td><td>${p ? g(a.revenue, p.revenue) : '—'}</td><td>${num(a.net_income / 1e8)}億</td><td>${p ? g(a.net_income, p.net_income) : '—'}</td></tr>`;
+  }).join('');
+  const quarterly = (D.quarterly_yoy || []).map(q => `<tr><td>${q.period}</td><td>${pct(q.revenue_yoy)}</td><td>${pct(q.net_income_yoy)}</td></tr>`).join('');
+  const peers = summary.stocks.filter(r => r.sector && r.sector === (summary.stocks.find(x => x.ticker === t) || {}).sector && isJP(r) === t.endsWith('.T') && r.dev_at_last_index_crash != null)
+    .sort((a, b) => a.dev_at_last_index_crash - b.dev_at_last_index_crash).slice(0, 12);
+  const aux = D.aux || {};
+  panel.innerHTML = `<button class="close" onclick="closeDetail()">×</button>
+    <div style="font-size:1.05rem;font-weight:700">${esc(d.ticker)} ${esc(d.name)}</div>
+    <div class="dim" style="font-size:0.72rem">${esc(d.market)}　${d.as_of}　株価 ${num(d.price)}　25日乖離 ${f1(d.deviation)}%</div>
+    <div style="margin-top:6px"><span class="badge v-${d.verdict.code}">${esc(d.verdict.label)}</span></div>
+    <div class="reasons">${d.verdict.reasons.map(esc).join('<br>')}</div>
+    <div class="sec" style="margin-top:0.8rem">株価（調整後）と暴落点</div>
+    <div class="cv"><canvas id="cPrice"></canvas></div>
+    <div class="dim" style="font-size:0.65rem">● 指数要因の暴落点　◆ 個別要因の暴落点　点線: 暴落点ごとの安値の推移　▲ 上場来高値の更新</div>
+    <div class="sec">25日乖離率</div>
+    <div class="cv small"><canvas id="cDev"></canvas></div>
+    <div class="grid" style="margin-top:0.6rem">
+      <div class="card"><h3>理想乖離（${ideal.method === 'percentile' ? 'パーセンタイル' : '平均±kσ'}、${ideal.start_date}〜、${ideal.stat_days}日）</h3>
+        <div class="kv"><span>-3σ / -2σ</span><span class="mono">${f1(ideal.lower3)}% / ${f1(ideal.lower2)}%</span></div>
+        <div class="kv"><span>+2σ / +3σ</span><span class="mono">${f1(ideal.upper2)}% / ${f1(ideal.upper3)}%</span></div>
+        <div class="kv"><span>σ方式の -2σ</span><span class="mono">${f1(ideal.sigma.lower2)}%</span></div>
+        <div class="kv"><span>旧方式の下限（10年で${lb ? lb.touches : '—'}回）</span><span class="mono">${lb ? f1(lb.threshold) + '%（差 ' + f1(lb.diff_from_lower2) + 'pt）' : '—'}</span></div>
+        <div class="kv"><span>最小 / 最大</span><span class="mono">${f1(ideal.min)}% / ${f1(ideal.max)}%</span></div>
+        <div class="cv small"><canvas id="cHist"></canvas></div></div>
+      <div class="card"><h3>条件A〜D</h3>
+        <div class="kv"><span>A 暴落点</span><span>${yn(A.pass)} ${A.date || ''} ${A.kind ? KIND[A.kind] : ''}</span></div>
+        <div class="kv"><span>直近の暴落点</span><span class="mono">${lc ? lc.date + '（' + KIND[lc.kind] + '）安値 ' + num(lc.low) : '—'}</span></div>
+        <div class="kv"><span>B ${B.exception ? '直近5年高値' : '上場来高値'}</span><span>${yn(B.pass)} ${B.high_date}（${B.days_since_high}日前）</span></div>
+        <div class="kv"><span>C 安値切り上げ</span><span>${yn(C.pass)} ${C.prev_low != null ? num(C.prev_low) + ' → ' + num(C.latest_low) : ''}</span></div>
+        <div class="kv"><span>C 連続切り上げ / 高値切り上げ</span><span>${C.strength_streak}回 / ${yn(C.higher_highs)}</span></div>
+        <div class="kv"><span>D 業績</span><span>${yn(D.pass)} 売上${D.revenue_streak}期・純利益${D.net_income_streak}期連続増${D.growth_stock ? '（成長株）' : ''}</span></div>
+        <div class="kv"><span>判定に使った期数</span><span class="mono">通期${D.annual_periods} / 四半期${D.quarterly_periods}</span></div>
+        <div class="kv"><span>相対的な強さ</span><span>${yn(S.relative_strength.pass)} ${S.relative_strength.date ? '個別' + f1(S.relative_strength.stock_dev) + '% / 指数' + f1(S.relative_strength.index_dev) + '%' : ''}</span></div>
+        <div class="kv"><span>月足パーフェクトオーダー</span><span>${yn(S.monthly_perfect_order.pass)}</span></div>
+        <div class="kv"><span>月足上昇・日足売られすぎ</span><span>${yn(S.monthly_up_daily_oversold)}</span></div>
+        <div class="kv"><span>下げ止まり</span><span>${yn(S.bottoming.pass)}</span></div>
+        <div class="kv"><span>営業CF / 自己資本比率 / 営業利益率</span><span class="mono">${yn(aux.operating_cf_positive)} / ${f1(aux.equity_ratio)}% / ${f1(aux.op_margin)}%</span></div>
+      </div>
+    </div>
+    <div class="grid" style="margin-top:0.6rem">
+      <div class="card"><h3>通期業績</h3><div class="tw" style="max-height:none"><table><thead><tr><th>期末</th><th>売上高</th><th>前年比</th><th>純利益</th><th>前年比</th></tr></thead><tbody>${annual || '<tr><td colspan="5" class="dim">データなし</td></tr>'}</tbody></table></div></div>
+      <div class="card"><h3>四半期（前年同期比）</h3><div class="tw" style="max-height:none"><table><thead><tr><th>期末</th><th>売上高</th><th>純利益</th></tr></thead><tbody>${quarterly || '<tr><td colspan="3" class="dim">データなし</td></tr>'}</tbody></table></div></div>
+    </div>
+    <div class="card" style="margin-top:0.6rem"><h3>月別平均騰落率（最大20年）</h3><div class="cv small"><canvas id="cSeason"></canvas></div></div>
+    <div class="card" style="margin-top:0.6rem"><h3>同じセクターの銘柄（直近の指数暴落点での乖離率、深い順）</h3>
+      <div class="tw" style="max-height:none"><table><thead><tr><th>銘柄</th><th>暴落点の乖離率</th><th>B 高値更新</th><th>判定</th></tr></thead><tbody>
+      ${peers.map(p => `<tr data-t="${esc(p.ticker)}"><td style="font-family:inherit">${esc(p.ticker)} ${esc(p.name)}</td><td>${pct(p.dev_at_last_index_crash)}</td><td>${yn(p.b)}</td><td>${vBadge(p)}</td></tr>`).join('') || '<tr><td colspan="4" class="dim">データなし</td></tr>'}
+      </tbody></table></div></div>
+    <div class="note">ルールは機械的な目安です。最終判断はチャートを自分の目で確認してください。</div>`;
+  document.getElementById('modal').classList.add('open');
+  drawCharts(d);
+}
+
+function closeDetail() { document.getElementById('modal').classList.remove('open'); charts.forEach(c => c.destroy()); charts = []; }
+
+function drawCharts(d) {
+  const ch = d.chart, labels = ch.d;
+  const grid = {color: 'rgba(100,116,139,0.15)'}, tick = {color: '#64748b', maxTicksLimit: 8, font: {size: 10}};
+  // 重ね表示はラベルと同じ長さの配列（該当日以外は null）で作る
+  const idxOf = date => { const i = labels.findIndex(x => x >= date); return i; };
+  const series = () => labels.map(() => null);
+  const pts = d.crash_points.filter(p => p.date >= labels[0] && p.low != null);
+  const mk = kind => { const a = series(); pts.filter(p => kind === 'index' ? p.kind !== 'individual' : p.kind === 'individual')
+    .forEach(p => { const i = idxOf(p.low_date || p.date); if (i >= 0) a[i] = p.low; }); return a; };
+  const lowLine = series(); pts.forEach(p => { const i = idxOf(p.low_date || p.date); if (i >= 0) lowLine[i] = p.low; });
+  const ath = series(); (d.ath_marks || []).forEach(x => { const i = idxOf(x); if (i >= 0) ath[i] = ch.c[i]; });
+  charts.push(new Chart(document.getElementById('cPrice'), {
+    type: 'line',
+    data: {labels, datasets: [
+      {label: '終値', data: ch.c, borderColor: '#38bdf8', borderWidth: 1.2, pointRadius: 0, tension: 0},
+      {label: '暴落点の安値', data: lowLine, borderColor: '#eab308', borderDash: [4, 4], borderWidth: 1.2, pointRadius: 0, spanGaps: true},
+      {label: '指数要因', data: mk('index'), showLine: false, backgroundColor: '#f97316', borderColor: '#f97316', pointRadius: 5},
+      {label: '個別要因', data: mk('individual'), showLine: false, backgroundColor: '#a855f7', borderColor: '#a855f7', pointStyle: 'rectRot', pointRadius: 6},
+      {label: '高値更新', data: ath, showLine: false, backgroundColor: 'rgba(34,197,94,0.8)', borderColor: 'rgba(34,197,94,0.8)', pointStyle: 'triangle', pointRadius: 3},
+    ]},
+    options: {animation: false, maintainAspectRatio: false, interaction: {mode: 'nearest', intersect: false},
+      plugins: {legend: {display: false}}, scales: {x: {ticks: tick, grid}, y: {ticks: tick, grid}}}
+  }));
+  const ideal = d.ideal, lb = d.legacy_lower_band;
+  const hline = (v, color, dash) => ({data: labels.map(() => v), borderColor: color, borderWidth: 1, borderDash: dash || [], pointRadius: 0});
+  const devSets = [{label: '乖離率', data: ch.v, borderColor: '#94a3b8', borderWidth: 1, pointRadius: 0},
+    {label: '-2σ', ...hline(ideal.lower2, '#f97316', [4, 3])}, {label: '-3σ', ...hline(ideal.lower3, '#ef4444', [4, 3])},
+    {label: '+2σ', ...hline(ideal.upper2, '#a855f7', [4, 3])}, {label: '+3σ', ...hline(ideal.upper3, '#ec4899', [4, 3])}];
+  if (lb) devSets.push({label: '旧方式下限', ...hline(lb.threshold, '#eab308', [1, 3])});
+  charts.push(new Chart(document.getElementById('cDev'), {type: 'line', data: {labels, datasets: devSets},
+    options: {animation: false, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {ticks: tick, grid}, y: {ticks: tick, grid}}}}));
+  const h = d.histogram;
+  charts.push(new Chart(document.getElementById('cHist'), {type: 'bar',
+    data: {labels: h.counts.map((_, i) => h.edges[i].toFixed(0)), datasets: [{data: h.counts,
+      backgroundColor: h.counts.map((_, i) => h.edges[i + 1] <= ideal.lower2 ? '#f97316' : h.edges[i] >= ideal.upper2 ? '#a855f7' : '#334155')}]},
+    options: {animation: false, maintainAspectRatio: false, plugins: {legend: {display: false}}, scales: {x: {ticks: tick, grid: {display: false}}, y: {ticks: tick, grid}}}}));
+  const s = d.seasonality;
+  charts.push(new Chart(document.getElementById('cSeason'), {type: 'bar',
+    data: {labels: s.map(x => x.month + '月'), datasets: [{data: s.map(x => x.avg), backgroundColor: s.map(x => (x.avg || 0) >= 0 ? '#22c55e' : '#ef4444')}]},
+    options: {animation: false, maintainAspectRatio: false, plugins: {legend: {display: false},
+      tooltip: {callbacks: {label: c => `平均 ${f1(c.raw)}% / 勝率 ${f1(s[c.dataIndex].win_rate)}%（${s[c.dataIndex].n}年）`}}},
+      scales: {x: {ticks: tick, grid: {display: false}}, y: {ticks: tick, grid}}}}));
+}
+
+// ─── イベント ───
+document.addEventListener('click', e => {
+  const why = e.target.closest('[data-why]');
+  if (why) { e.stopPropagation(); showWhy(why.dataset.why, e.clientX, e.clientY); return; }
+  closePop();
+  const th = e.target.closest('th[data-k]');
+  if (th) { const k = th.dataset.k; state.sort = {key: k, asc: state.sort.key === k ? !state.sort.asc : true}; renderTable(); return; }
+  const rb = e.target.closest('#region button');
+  if (rb) { state.region = rb.dataset.r; document.querySelectorAll('#region button').forEach(b => b.classList.toggle('on', b === rb)); render(); return; }
+  const vc = e.target.closest('[data-v]');
+  if (vc) { const v = vc.dataset.v; state.verdicts.has(v) ? state.verdicts.delete(v) : state.verdicts.add(v); vc.classList.toggle('on'); renderTable(); return; }
+  const fc = e.target.closest('[data-f]');
+  if (fc) { const f = fc.dataset.f; state.flags.has(f) ? state.flags.delete(f) : state.flags.add(f); fc.classList.toggle('on'); renderTable(); return; }
+  if (e.target.id === 'modal') { closeDetail(); return; }
+  const row = e.target.closest('[data-t]');
+  if (row) openDetail(row.dataset.t);
+});
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; renderTable(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(); closeDetail(); } });
+load();
+</script>
+</body>
+</html>

@@ -24,6 +24,8 @@ sys.path.insert(0, ROOT)
 from longterm.config import load_config  # noqa: E402
 from longterm.data import fetch_financials, fetch_history  # noqa: E402
 from longterm.evaluate import _clean, evaluate_index, evaluate_stock, summary_row  # noqa: E402
+from longterm.market import breadth, index_regime, load_crash_notes  # noqa: E402
+import shutil  # noqa: E402
 
 
 def universe():
@@ -74,8 +76,11 @@ def main():
     extras = latest_screener_extras()
 
     jp_cfg, us_cfg = cfg["crash_point"]["index_jp"], cfg["crash_point"]["index_us"]
-    idx = {"jp": [evaluate_index(jp_cfg["ticker"], fetch_history(jp_cfg["ticker"]), jp_cfg, cfg, args.as_of)],
-           "us": [evaluate_index(t, fetch_history(t), us_cfg, cfg, args.as_of) for t in us_cfg["tickers"]]}
+    idx_df = {t: fetch_history(t) for t in [jp_cfg["ticker"]] + us_cfg["tickers"]}
+    if args.as_of:
+        idx_df = {t: d.loc[:args.as_of] for t, d in idx_df.items()}
+    idx = {"jp": [evaluate_index(jp_cfg["ticker"], idx_df[jp_cfg["ticker"]], jp_cfg, cfg)],
+           "us": [evaluate_index(t, idx_df[t], us_cfg, cfg) for t in us_cfg["tickers"]]}
     for grp in idx.values():
         for ix in grp:
             print(f"  index {ix['ticker']}: dev={ix['deviation']:.2f}% threshold={ix['threshold']:.2f}% "
@@ -86,18 +91,29 @@ def main():
         df = fetch_history(t)
         if df.empty:
             raise RuntimeError("no price data")
+        if args.as_of:
+            df = df.loc[:args.as_of]
         fin = fetch_financials(t)
         indices = idx["jp"] if t.endswith(".T") else idx["us"]
-        return evaluate_stock(t, n, m, df, fin, indices, cfg, args.as_of, extras.get(t))
+        r = evaluate_stock(t, n, m, df, fin, indices, cfg, None, extras.get(t))
+        close = df["close"]
+        flag = (bool(close.iloc[-1] < close.iloc[-2]),
+                bool(close.iloc[-1] < close.rolling(cfg["deviation"].get("sma_period", 25)).mean().iloc[-1]))
+        return r, flag
 
     os.makedirs(os.path.join(args.out, "stocks"), exist_ok=True)
     rows, failed = [], []
+    flags = {"jp": [], "us": []}
     with ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(work, s): s for s in stocks}
         for i, f in enumerate(as_completed(futs), 1):
             t = futs[f][0]
             try:
-                r = f.result()
+                r, flag = f.result()
+                if futs[f][2] == "Nikkei225":
+                    flags["jp"].append(flag)
+                elif not t.endswith(".T"):
+                    flags["us"].append(flag)
                 if r is None:
                     failed.append((t, "history too short"))
                     continue
@@ -121,7 +137,24 @@ def main():
     with open(os.path.join(args.out, "summary.json"), "w", encoding="utf-8") as fp:
         json.dump(_clean(summary), fp, ensure_ascii=False)
 
+    notes = load_crash_notes()
+    market = {
+        "generated_at": summary["generated_at"],
+        "jp": {"indices": [index_regime(idx["jp"][0], idx_df[jp_cfg["ticker"]], jp_cfg, cfg, notes)],
+               "breadth": breadth(flags["jp"])},
+        "us": {"indices": [index_regime(ix, idx_df[ix["ticker"]], us_cfg, cfg, notes) for ix in idx["us"]],
+               "breadth": breadth(flags["us"])},
+    }
+    with open(os.path.join(args.out, "market.json"), "w", encoding="utf-8") as fp:
+        json.dump(_clean(market), fp, ensure_ascii=False)
+    # 新タブのページ（静的HTML）を docs 直下にコピー
+    page_src = os.path.join(ROOT, "web", "longterm.html")
+    docs_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.out)))
+    if os.path.exists(page_src) and os.path.basename(os.path.dirname(os.path.abspath(args.out))) == "data":
+        shutil.copy(page_src, os.path.join(docs_dir, "longterm.html"))
+
     print(f"\n  long-term: {len(rows)} ok / {len(failed)} failed in {time.time() - t0:.0f}s")
+    print(f"  breadth jp={market['jp']['breadth']} us={market['us']['breadth']}")
     print(f"  verdicts: {counts}")
     for t, e in failed[:20]:
         print(f"  [ERROR] {t}: {e}")

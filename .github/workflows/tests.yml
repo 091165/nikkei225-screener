@@ -36,7 +36,7 @@ jobs:
         run: python -m pytest -v -s -m network
 
       - name: Smoke run (sample tickers)
-        run: python scripts/run_longterm.py --tickers 3038.T 4776.T 6035.T 5301.T 9697.T 2593.T 7203.T AAPL MSFT KO --out /tmp/longterm
+        run: python scripts/run_longterm.py --tickers 3038.T 4776.T 6035.T 5301.T 9697.T 2593.T 7203.T AAPL MSFT KO --out /tmp/longterm/data/longterm
 
       - name: Upload sample JSON
         uses: actions/upload-artifact@v4
