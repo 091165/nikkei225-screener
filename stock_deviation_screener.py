@@ -200,7 +200,10 @@ def get_zone(dev, s2l, s3l, s2u, s3u):
 
 # ─── 配当データ（CSVから読み込み） ─────────────────
 _div_csv_data = {}  # JP + US combined
+_div_csv_asof = {}  # 各銘柄の配当額の基準日（as_of列）。この日以降の株式分割は自動で調整する
 _consec_csv_data = {}  # 連続増配年数
+_split_adjust_log = []  # 株式分割で配当を自動調整した銘柄
+_div_warn_log = []  # CSV配当とyfinance実績が大きくずれている銘柄
 
 def load_dividend_csvs():
     """jp_dividends.csv, us_dividends.csv, div_consec_years.csv を読み込む"""
@@ -219,7 +222,12 @@ def load_dividend_csvs():
                     for _, row in df_div.iterrows():
                         t = str(row["ticker"]).strip()
                         d = float(row.get("div_per_share", 0) or 0)
+                        if pd.isna(d):
+                            d = 0.0
                         _div_csv_data[t] = d
+                        as_of = pd.to_datetime(row.get("as_of"), errors="coerce")
+                        if pd.notna(as_of):
+                            _div_csv_asof[t] = as_of
                         count += 1
                     print(f"  Loaded {filename}: {count} stocks")
                     break
@@ -243,6 +251,46 @@ def load_dividend_csvs():
             break
 
 
+def _naive_index(series):
+    idx = series.index
+    if getattr(idx, "tz", None) is not None:
+        idx = idx.tz_localize(None)
+    return idx
+
+
+def split_factor_since(ticker, as_of):
+    """as_of より後に行われた株式分割の累積倍率を返す（例: 1→10分割なら10.0）"""
+    try:
+        splits = ticker.splits
+    except Exception:
+        return 1.0, []
+    if splits is None or len(splits) == 0:
+        return 1.0, []
+    idx = _naive_index(splits)
+    after = splits[idx > as_of]
+    after = after[after > 0]
+    if len(after) == 0:
+        return 1.0, []
+    factor = float(np.prod(after.values))
+    events = [f"{d:%Y-%m-%d} 1:{r:g}" for d, r in zip(_naive_index(after), after.values)]
+    return factor, events
+
+
+def ttm_dividends(ticker):
+    """yfinance配当履歴（分割調整済み）の直近1年合計。取得できなければ0"""
+    try:
+        divs = ticker.dividends
+    except Exception:
+        return 0.0
+    if divs is None or len(divs) == 0:
+        return 0.0
+    idx = _naive_index(divs)
+    if idx[-1] < pd.Timestamp.now() - pd.Timedelta(days=450):
+        return 0.0  # 1年以上配当がない
+    recent = divs[idx >= idx[-1] - pd.Timedelta(days=370)]
+    return float(recent.sum())
+
+
 def calc_deviation(ticker_str, name, market):
     """1銘柄の理想乖離を計算"""
     try:
@@ -264,6 +312,27 @@ def calc_deviation(ticker_str, name, market):
             # Step 1: CSVから取得（日米共通）
             if ticker_str in _div_csv_data:
                 div_per_share = _div_csv_data[ticker_str]
+                # CSVの基準日より後の株式分割を自動調整（分割前の配当額のままだと利回りが過大になる）
+                as_of = _div_csv_asof.get(ticker_str)
+                if div_per_share > 0 and as_of is not None:
+                    factor, events = split_factor_since(ticker, as_of)
+                    if factor != 1.0:
+                        adjusted = div_per_share / factor
+                        msg = (f"{ticker_str} {name}: 配当 {div_per_share:g} → {adjusted:.2f} "
+                               f"(分割 {', '.join(events)} / CSV基準日 {as_of:%Y-%m-%d})")
+                        print(f"  [SPLIT] {msg}")
+                        _split_adjust_log.append(msg)
+                        div_per_share = adjusted
+                # yfinanceの配当実績と大きくずれていたら警告（CSVの更新漏れ検知用）
+                if div_per_share > 0:
+                    ttm = ttm_dividends(ticker)
+                    if ttm > 0:
+                        ratio = div_per_share / ttm
+                        if ratio > 2.5 or ratio < 0.4:
+                            msg = (f"{ticker_str} {name}: CSV配当 {div_per_share:.2f} / "
+                                   f"yfinance直近1年 {ttm:.2f} (x{ratio:.1f})")
+                            print(f"  [WARN] {msg}")
+                            _div_warn_log.append(msg)
             elif not is_jp:
                 # Step 2: CSVにない米国株はyfinanceフォールバック
                 try:
@@ -698,6 +767,15 @@ def main():
     print(f"\n  Completed: {len(results)} success / {len(errors)} failed")
     if errors:
         print(f"  Failed tickers: {', '.join(errors[:20])}{'...' if len(errors)>20 else ''}")
+
+    if _split_adjust_log:
+        print(f"\n  株式分割で配当を自動調整: {len(_split_adjust_log)}銘柄")
+        for m in _split_adjust_log:
+            print(f"    {m}")
+    if _div_warn_log:
+        print(f"\n  [WARN] CSV配当がyfinance実績と大きくずれている: {len(_div_warn_log)}銘柄（CSVの確認推奨）")
+        for m in _div_warn_log:
+            print(f"    {m}")
 
     if not results:
         print("  [ERROR] No results. Exiting.")
