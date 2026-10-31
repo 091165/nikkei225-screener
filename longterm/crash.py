@@ -29,12 +29,23 @@ class CrashPoint:
         return asdict(self)
 
 
-def detect_touch_dates(dev: pd.Series, threshold: float, reset_months: int = 3) -> list[pd.Timestamp]:
+def _threshold_at(threshold, d):
+    if isinstance(threshold, pd.Series):
+        return float(threshold.loc[d])
+    return float(threshold)
+
+
+def detect_touch_dates(dev: pd.Series, threshold, reset_months: int = 3) -> list[pd.Timestamp]:
     """乖離率がしきい値以下になった日のうち、直前のタッチから reset_months 以上あいた最初の日を返す。
 
     「あいた」は最後にタッチした日から数える（同じ局面で何日もタッチが続いても、最初の日だけが暴落点）。
+    threshold は固定値、または日ごとのしきい値（dev と同じ日付の Series。バックテストで時点ごとの理想乖離を使う場合）。
     """
-    touches = dev.index[dev.values <= threshold]
+    if isinstance(threshold, pd.Series):
+        th = threshold.reindex(dev.index).values
+        touches = dev.index[dev.values <= th]   # NaN との比較は False
+    else:
+        touches = dev.index[dev.values <= threshold]
     events = []
     last_touch = None
     for t in touches:
@@ -87,7 +98,7 @@ def episode_point(dev: pd.Series, d: pd.Timestamp, kind: str, threshold: float, 
     return CrashPoint(
         date=d.strftime("%Y-%m-%d"),
         kind=kind,
-        threshold=float(threshold),
+        threshold=_threshold_at(threshold, d),
         deviation=float(dev.loc[d]),
         min_deviation=min_dev,
         min_deviation_date=min_dev_date.strftime("%Y-%m-%d"),
@@ -108,7 +119,7 @@ def build_crash_points(dev: pd.Series, threshold: float, kind: str, cfg: dict,
     return [episode_point(dev, d, kind, threshold, cfg, low, severity_levels, source) for d in dates]
 
 
-def stock_crash_points(dev: pd.Series, low: pd.Series, individual_threshold: float | None,
+def stock_crash_points(dev: pd.Series, low: pd.Series, individual_threshold,
                        index_points: list[CrashPoint], cfg: dict) -> list[CrashPoint]:
     """1銘柄の暴落点（指数暴落点と個別暴落点の和集合）を時系列で返す。
 

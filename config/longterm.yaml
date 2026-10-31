@@ -64,3 +64,36 @@ signals:
   income:
     yield_jp: 4.0
     yield_us: 6.0
+
+holdings:                   # 条件E・F（保有銘柄の逆指値と売り時）
+  wait_months: 3            # 買付からこの期間は逆指値を提案しない（様子見期間）
+  cut_loss_pct: -10.0       # 様子見期間後、含み損益がこれ以下なら損切り
+  ladder:                   # 含み損益（%）の下限 → 逆指値（買値からの%）。上から順に判定。切り上げのみ
+    - {min_gain: 100.0, stop: 20.0}
+    - {min_gain: 50.0, stop: 10.0}
+    - {min_gain: 30.0, stop: 0.0}
+    - {min_gain: -10.0, stop: -10.0}
+  half_profit_gain: 100.0   # 含み益がこれ以上で、株数が下の値以上なら半分利確を提案
+  half_profit_min_shares: 200
+  no_ath_months: 6          # 売り検討: この期間、上場来高値を更新していない
+  overheat:                 # 過熱警告
+    month_multiple: 2.0     # 1か月で何倍
+    year_multiple: 10.0     # 1年で何倍
+
+backtest:
+  start: "2005-01-01"       # この日以降の暴落点を対象にする
+  shares: 200               # 想定株数（半分利確の判定に使う）
+  financial_lag_months: 3   # 業績は決算期末からこの期間遅らせて使う（発表日が取れないため）
+  forward_months: [3, 6, 12, 24]
+  benchmark_jp: "^N225"
+  benchmark_us: "^GSPC"
+  exit_rules:               # 機械的に適用する売りルール
+    stop: true              # 条件E: 逆指値ラダー・損切り
+    half_profit: true       # 条件F: +100%で半分利確（株数が条件を満たす場合）
+    lower_low: true         # 条件F: 次の暴落点で前回より安値を切り下げたら売り
+    no_ath: true            # 条件F: 様子見期間後、6か月以上上場来高値を更新していなければ売り
+
+swing:                      # 別戦略（長期ロジックとは混ぜない）
+  sma: 5
+  entry_dev: -5.0           # 5日線からの乖離率がこれ以下で買い
+  hold_days: 5              # この営業日数後の終値で売り
