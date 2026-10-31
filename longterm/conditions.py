@@ -114,6 +114,8 @@ _ROWS = {
     "equity": ["Stockholders Equity", "Common Stock Equity", "Total Equity Gross Minority Interest"],
     "total_assets": ["Total Assets"],
     "retained_earnings": ["Retained Earnings"],
+    "dividends_paid": ["Cash Dividends Paid", "Common Stock Dividend Paid"],
+    "shares": ["Ordinary Shares Number", "Share Issued"],
 }
 
 

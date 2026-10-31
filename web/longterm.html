@@ -73,6 +73,16 @@ details summary{cursor:pointer;color:var(--ac);font-size:0.78rem;margin:0.4rem 0
 .mbar i{display:block;width:100%;border-radius:2px 2px 0 0}
 .mbar.cur{color:var(--tx);font-weight:700}
 .mbar.cur i{outline:2px solid var(--ac)}
+.line{font-size:0.78rem;padding:3px 0;border-bottom:1px dashed var(--bd)}
+.line b{color:var(--ac)}
+.tag{display:inline-block;font-size:0.6rem;padding:1px 5px;border-radius:3px;background:var(--s2);color:var(--tx);margin:1px;white-space:nowrap}
+.tags{white-space:normal;min-width:140px;max-width:260px}
+.g-A{color:var(--grn);font-weight:700}.g-B{color:var(--ac);font-weight:700}.g-C{color:var(--ylw)}
+.vt{color:var(--dim)}
+.list{font-size:0.75rem;line-height:1.7}
+.list .mono{font-size:0.72rem}
+select{background:var(--s2);border:1px solid var(--bd);color:var(--tx);border-radius:6px;padding:0.35rem;font-size:0.75rem}
+.calc input{width:120px}
 @media (max-width:640px){.panel{margin:0;border-radius:0;min-height:100vh}.cv{height:220px}.big{font-size:1.3rem}input.search{width:100%}}
 </style>
 </head>
@@ -94,12 +104,25 @@ details summary{cursor:pointer;color:var(--ac);font-size:0.78rem;margin:0.4rem 0
   <div class="sec">地合い</div>
   <div class="grid" id="market"></div>
   <div id="weakRank"></div>
+  <div class="grid" id="extraLists" style="margin-top:0.7rem"></div>
+  <details id="calcBox"><summary>暴落時の均等買い計算</summary>
+    <div class="card calc">
+      <div class="filters">
+        <select id="calcTarget"><option value="all">日経225（日本株）/ 表示中の地域の全銘柄</option><option value="watch">ウォッチリストのみ</option></select>
+        <label class="dim" style="font-size:0.72rem">除外する株価の上限 <input id="calcCap" type="number" value="10000" inputmode="numeric"></label>
+      </div>
+      <div class="dim" style="font-size:0.7rem">基準 = 対象のうち一番高い株価。各銘柄の株数 = 基準 ÷ 株価（四捨五入、単元未満株・ミニ株の1株単位を想定）</div>
+      <div class="tw" style="max-height:50vh;margin-top:0.4rem"><table id="calcTbl"></table></div>
+    </div>
+  </details>
   <details><summary>過去の暴落点一覧</summary><div class="tw" style="max-height:50vh"><table id="crashTbl"></table></div></details>
 
   <div class="sec">今日の長期買い候補</div>
   <div class="cards" id="buyCards"></div>
   <div class="sec">次の暴落で買う監視リスト（上位20）</div>
   <div class="cards" id="watchCards"></div>
+  <div class="sec">上位10 <select id="topSort"><option value="madakabu">まだ株格付け順</option><option value="buy_score">既存の買いスコア順</option></select></div>
+  <div class="cards" id="topCards"></div>
 
   <div class="sec">全銘柄</div>
   <div class="filters" id="vFilters"></div>
@@ -108,6 +131,9 @@ details summary{cursor:pointer;color:var(--ac);font-size:0.78rem;margin:0.4rem 0
     <button class="chip" data-f="individual">個別要因</button>
     <button class="chip" data-f="growth">成長株のみ</button>
     <button class="chip" data-f="yield">高配当のみ</button>
+    <button class="chip" data-f="gradeAB">配当格付けA・B</button>
+    <button class="chip" data-f="watch">ウォッチ</button>
+    <select id="sortPreset"><option value="verdict">判定順</option><option value="madakabu">まだ株格付け順</option><option value="buy_score">既存の買いスコア順</option></select>
     <input class="search" id="q" placeholder="コード・銘柄名で検索">
   </div>
   <div class="tw"><table id="tbl"></table></div>
@@ -182,13 +208,29 @@ function renderMarket() {
       return `<div class="mbar ${s.month === cur || s.month === next ? 'cur' : ''}" title="${s.month}月 平均${f1(s.avg)}% 勝率${f1(s.win_rate)}%">
         <span>${f1(s.avg)}</span><i style="height:${h}px;background:${(s.avg ?? 0) >= 0 ? 'var(--grn)' : 'var(--red)'}"></i><span>${s.month}</span></div>`;
     }).join('') + `</div><div class="dim" style="font-size:0.65rem;margin-top:4px">今月（${cur}月）勝率 ${f1(ix0.seasonality[cur-1].win_rate)}% ／ 来月（${next}月）勝率 ${f1(ix0.seasonality[next-1].win_rate)}%</div></div>`;
+  if (state.region === 'jp') {
+    const st = m.index_stage || {}, bs = b.stage || {};
+    html = `<div class="card" style="grid-column:1/-1"><h3>今の地合い（${esc(m.breadth_note || '')}）</h3>
+      <div class="line">日経平均の25日乖離 <b>${f1(m.indices[0].deviation)}%</b>：${esc(st.label || '—')}</div>
+      <div class="line">下方乖離（25日線より下） <b>${b.n ? Math.round(b.below_ma_pct * b.n / 100) : '—'}／${b.n || '—'}銘柄（${f1(b.below_ma_pct)}%）</b>：${esc(bs.label || '—')}　-2σ以下 ${b.below_lower2_n ?? '—'}銘柄</div>
+      ${b.adr25 != null ? `<div class="line">25日騰落レシオ <b>${f1(b.adr25)}%</b>（${esc(b.adr25_label)}）　直近1年の最低 ${f1(b.adr25_min_1y)}%まで あと${f1(b.adr25 - b.adr25_min_1y)}pt</div>` : ''}
+      <div class="line">今月（${cur}月）は${esc(m.month_tendency || '')}</div>
+      ${m.yen_strong != null ? `<div class="line">ドル円の25日乖離 ${f1(m.usdjpy_dev)}%：${m.yen_strong ? '円高方向（内需株に追い風）' : '円安方向'}</div>` : ''}
+      ${m.ex_dividend_notice ? `<div class="line" style="color:var(--ylw)">${esc(m.ex_dividend_notice)}</div>` : ''}
+      ${spark(m.breadth_history || [])}
+    </div>` + html;
+  } else if (m.vix) {
+    html += `<div class="card"><h3>恐怖指数 VIX（参考）</h3><div class="big">${f1(m.vix.value)}</div>
+      <div class="dim" style="font-size:0.7rem">${m.vix.as_of}。判定・スコアには使いません。恐怖指数が高くても、乖離率が浅ければ見送りが基本。</div></div>`;
+  }
   el.innerHTML = html;
+  renderLists();
 
   // 地合い悪化時: 下方乖離が深い順（業績が不合格でないもの）
   const wr = document.getElementById('weakRank');
   if (b.weak) {
     const list = rows().filter(r => r.d !== false).sort((a, c) => a.deviation - c.deviation).slice(0, 10);
-    wr.innerHTML = `<div class="sec">地合い悪化中：下方乖離が深い順（業績に問題が見つかっていない銘柄）</div><div class="cards">${list.map(miniCard).join('')}</div>`;
+    wr.innerHTML = `<div class="sec">地合い悪化中：下方乖離が深い順（業績に問題が見つかっていない銘柄）</div><div class="cards">${list.map(r => miniCard(r)).join('')}</div>`;
   } else wr.innerHTML = '';
 
   document.getElementById('crashTbl').innerHTML = `<thead><tr><th>暴落点</th><th>最大乖離率</th><th>暴落度</th><th>3か月後</th><th>6か月後</th><th>12か月後</th><th>メモ</th></tr></thead><tbody>` +
@@ -196,9 +238,56 @@ function renderMarket() {
       <td>${pct(c.ret_3m)}</td><td>${pct(c.ret_6m)}</td><td>${pct(c.ret_12m)}</td><td style="font-family:inherit">${esc(c.note || '')}</td></tr>`).join('') + '</tbody>';
 }
 
-function miniCard(r) {
+function spark(hist) {
+  if (!hist.length) return '';
+  const v = hist.map(h => +h.below_ma_pct), W = 300, H = 50;
+  const x = i => hist.length > 1 ? i / (hist.length - 1) * W : W / 2, y = val => H - val / 100 * H;
+  const pts = v.map((val, i) => `${x(i).toFixed(1)},${y(val).toFixed(1)}`).join(' ');
+  return `<div class="dim" style="font-size:0.65rem;margin-top:6px">下方乖離の割合の推移（直近${hist.length}日、点線=50%）</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:420px;height:50px"><line x1="0" x2="${W}" y1="${y(50)}" y2="${y(50)}" stroke="#64748b" stroke-dasharray="3 3"/>
+    <polyline fill="none" stroke="#38bdf8" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+
+function renderLists() {
+  const L = summary.lists || {}, el = document.getElementById('extraLists');
+  if (state.region !== 'jp') { el.innerHTML = ''; return; }
+  const item = (r, extra) => `<div data-t="${esc(r.ticker)}" style="cursor:pointer">${esc(r.ticker)} ${esc(r.name)} <span class="mono dim">${extra}</span></div>`;
+  const mrow = r => item(r, `勝率${f1(r.win_rate)}%（${r.n}年）平均${f1(r.avg)}%${r.significant ? ' ★' : ''}`);
+  let h = '';
+  if ((L.month_up || []).length) h += `<div class="card"><h3>今月上げやすい銘柄（10年以上、★=95%区間が50%をまたがない）</h3><div class="list">${L.month_up.map(mrow).join('')}</div></div>
+    <div class="card"><h3>今月下げやすい銘柄</h3><div class="list">${L.month_down.map(mrow).join('')}</div></div>`;
+  if ((L.strong_in_decline || []).length) h += `<div class="card"><h3>指数の下げに強い（直近20日、日経との差）</h3><div class="list">${L.strong_in_decline.map(r => item(r, `${r.rel20 >= 0 ? '+' : ''}${f1(r.rel20)}pt${['A','B'].includes(r.grade) ? '　配当' + r.grade : ''}`)).join('')}</div></div>`;
+  if ((L.sector_value || []).length) h += `<div class="card"><h3>低PBR×高配当が多いセクター（PBR1倍割れ・利回り3%以上）</h3><div class="list">${L.sector_value.map(s => `<div>${esc(s.sector)} <span class="mono dim">${s.hits}/${s.n}銘柄（${f1(s.pct)}%）</span></div>`).join('')}</div></div>`;
+  el.innerHTML = h;
+}
+
+function renderCalc() {
+  const cap = +document.getElementById('calcCap').value || Infinity;
+  let rs = rows();
+  if (document.getElementById('calcTarget').value === 'watch') rs = rs.filter(r => r.watchlist);
+  rs = rs.filter(r => r.price && r.price < cap);
+  const t = document.getElementById('calcTbl');
+  if (!rs.length) { t.innerHTML = '<tr><td class="dim">対象がありません</td></tr>'; return; }
+  const base = Math.max(...rs.map(r => r.price));
+  let total = 0;
+  const body = rs.sort((a, b) => b.price - a.price).map(r => {
+    const n = Math.max(1, Math.round(base / r.price)), amt = n * r.price; total += amt;
+    return `<tr><td>${esc(r.ticker)}</td><td style="font-family:inherit">${esc(r.name)}</td><td>${num(r.price)}</td><td>${n}</td><td>${num(amt)}</td></tr>`;
+  }).join('');
+  t.innerHTML = `<thead><tr><th>コード</th><th>銘柄</th><th>株価</th><th>株数</th><th>金額</th></tr></thead><tbody>${body}
+    <tr><td colspan="4"><b>合計（${rs.length}銘柄、基準 ${num(base)}）</b></td><td><b>${num(total)}</b></td></tr></tbody>`;
+}
+
+function renderTop() {
+  const key = document.getElementById('topSort').value;
+  const top = rows().filter(r => r[key] != null).sort((a, b) => b[key] - a[key]).slice(0, 10);
+  document.getElementById('topCards').innerHTML = top.map(r => miniCard(r, `${key === 'madakabu' ? 'まだ株' : '買いスコア'} ${r[key]}`)).join('') ||
+    '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">データなし</div>';
+}
+
+function miniCard(r, note) {
   return `<div class="mini" data-t="${esc(r.ticker)}"><div class="t">${esc(r.ticker)} ${vBadge(r)}</div><div class="n">${esc(r.name)}</div>
-    <div class="m">乖離 ${pct(r.deviation)}　-2σまで ${f1(r.dist_to_lower2)}%</div></div>`;
+    <div class="m">乖離 ${pct(r.deviation)}　-2σまで ${f1(r.dist_to_lower2)}%</div>${note ? `<div class="m">${note}</div>` : ''}</div>`;
 }
 
 function vBadge(r) {
@@ -208,9 +297,9 @@ function vBadge(r) {
 function renderCards() {
   const rs = rows();
   const buys = rs.filter(r => r.verdict === 'strong_buy' || r.verdict === 'buy').sort((a, b) => VORDER[a.verdict] - VORDER[b.verdict]);
-  document.getElementById('buyCards').innerHTML = buys.length ? buys.map(miniCard).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">今日は該当なし（暴落点が来ていないか、条件B〜Dを満たす銘柄がない）</div>';
+  document.getElementById('buyCards').innerHTML = buys.length ? buys.map(r => miniCard(r)).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">今日は該当なし（暴落点が来ていないか、条件B〜Dを満たす銘柄がない）</div>';
   const watch = rs.filter(r => r.verdict === 'watch').sort((a, b) => a.dist_to_lower2 - b.dist_to_lower2).slice(0, 20);
-  document.getElementById('watchCards').innerHTML = watch.length ? watch.map(miniCard).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">該当なし</div>';
+  document.getElementById('watchCards').innerHTML = watch.length ? watch.map(r => miniCard(r)).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">該当なし</div>';
 }
 
 function renderVerdictFilters() {
@@ -221,8 +310,10 @@ const COLS = [
   ['verdict', '判定'], ['ticker', 'コード'], ['name', '銘柄名'], ['sector', 'セクター'], ['price', '株価'],
   ['deviation', '25日乖離'], ['dist_to_lower2', '-2σまで'], ['latest_crash_date', '直近暴落点'],
   ['days_since_high', 'B 高値から'], ['c_streak', 'C 切上回数'], ['revenue_streak', 'D 連続増'],
-  ['relative_strength', '相対強さ'], ['monthly_po', '月足PO'], ['div_yield', '配当']
+  ['relative_strength', '相対強さ'], ['monthly_po', '月足PO'], ['div_yield', '配当'],
+  ['madakabu', 'まだ株'], ['div_grade', '配当格付け'], ['buy_score', '買いスコア'], ['tags', 'シグナル']
 ];
+const GORDER = {A: 4, B: 3, C: 2, '—': 1};
 
 function renderTable() {
   let rs = rows();
@@ -232,9 +323,12 @@ function renderTable() {
   if (state.flags.has('individual')) rs = rs.filter(r => r.latest_crash_kind === 'individual' || r.latest_crash_kind === 'both');
   if (state.flags.has('growth')) rs = rs.filter(r => r.growth_stock);
   if (state.flags.has('yield')) rs = rs.filter(r => (r.div_yield || 0) >= yieldTh);
+  if (state.flags.has('gradeAB')) rs = rs.filter(r => r.div_grade === 'A' || r.div_grade === 'B');
+  if (state.flags.has('watch')) rs = rs.filter(r => r.watchlist);
   if (state.q) { const q = state.q.toLowerCase(); rs = rs.filter(r => r.ticker.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q)); }
   const {key, asc} = state.sort;
-  const val = r => key === 'verdict' ? VORDER[r.verdict] * 1000 + (r.dist_to_lower2 ?? 0) : r[key];
+  const val = r => key === 'verdict' ? VORDER[r.verdict] * 1000 + (r.dist_to_lower2 ?? 0)
+    : key === 'div_grade' ? GORDER[r.div_grade] : key === 'tags' ? (r.tags || []).length : r[key];
   rs.sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1); });
   const t = document.getElementById('tbl');
   t.innerHTML = `<thead><tr>${COLS.map(([k, l]) => `<th data-k="${k}">${l}${state.sort.key === k ? (asc ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
@@ -245,10 +339,17 @@ function renderTable() {
       <td>${r.days_since_high ?? '—'}日${r.b_exception ? '<span class="dim">*</span>' : ''} ${yn(r.b)}</td>
       <td>${r.c_streak} ${yn(r.c)}</td>
       <td>売${r.revenue_streak}/益${r.net_income_streak} ${yn(r.d)}${r.growth_stock ? ' <span class="pos">成長</span>' : ''}</td>
-      <td>${yn(r.relative_strength)}</td><td>${yn(r.monthly_po)}</td><td>${r.div_yield ? (+r.div_yield).toFixed(2) + '%' : '—'}</td></tr>`).join('') + '</tbody>';
+      <td>${yn(r.relative_strength)}</td><td>${yn(r.monthly_po)}</td>
+      <td class="${r.below_vt ? 'vt' : ''}" title="${r.below_vt ? 'VT（約2%）以下' : ''}">${r.div_yield ? (+r.div_yield).toFixed(2) + '%' : '—'}</td>
+      <td>${r.madakabu ?? '—'}</td><td class="g-${r.div_grade}">${r.div_grade || '—'}</td><td>${r.buy_score ?? '—'}</td>
+      <td class="tags" style="font-family:inherit">${(r.tags || []).map(x => `<span class="tag">${esc(x)}</span>`).join('')}</td></tr>`).join('') + '</tbody>';
 }
 
-function render() { renderMarket(); renderCards(); renderTable(); }
+function render() {
+  renderMarket(); renderCards(); renderTop(); renderTable(); renderCalc();
+  const n225 = (market.jp.indices || [])[0];
+  if (state.region === 'jp' && n225 && n225.deviation <= -10) document.getElementById('calcBox').open = true;   // 指数暴落時は自動で開く
+}
 
 // ─── 「なぜその判定か」ポップアップ ───
 const detailCache = {};
@@ -322,6 +423,7 @@ async function openDetail(t) {
       <div class="card"><h3>通期業績</h3><div class="tw" style="max-height:none"><table><thead><tr><th>期末</th><th>売上高</th><th>前年比</th><th>純利益</th><th>前年比</th></tr></thead><tbody>${annual || '<tr><td colspan="5" class="dim">データなし</td></tr>'}</tbody></table></div></div>
       <div class="card"><h3>四半期（前年同期比）</h3><div class="tw" style="max-height:none"><table><thead><tr><th>期末</th><th>売上高</th><th>純利益</th></tr></thead><tbody>${quarterly || '<tr><td colspan="3" class="dim">データなし</td></tr>'}</tbody></table></div></div>
     </div>
+    ${extraCard(d)}
     <div class="card" style="margin-top:0.6rem"><h3>月別平均騰落率（最大20年）</h3><div class="cv small"><canvas id="cSeason"></canvas></div></div>
     <div class="card" style="margin-top:0.6rem"><h3>同じセクターの銘柄（直近の指数暴落点での乖離率、深い順）</h3>
       <div class="tw" style="max-height:none"><table><thead><tr><th>銘柄</th><th>暴落点の乖離率</th><th>B 高値更新</th><th>判定</th></tr></thead><tbody>
@@ -330,6 +432,50 @@ async function openDetail(t) {
     <div class="note">ルールは機械的な目安です。最終判断はチャートを自分の目で確認してください。</div>`;
   document.getElementById('modal').classList.add('open');
   drawCharts(d);
+}
+
+function extraCard(d) {
+  const sc = d.screens || {};
+  if (!sc.dividend) return '';
+  const dv = sc.dividend, mk = sc.madakabu || {}, mo = sc.monthly || {}, cs = sc.crash_strength || {}, dp = sc.dip || {};
+  const ms = x => x && x.n ? `勝率${f1(x.win_rate)}%（${x.n}年、95%区間 ${f1(x.ci_low)}〜${f1(x.ci_high)}%）平均${f1(x.avg)}%` : '—';
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+  const annual = dv.annual ? Object.entries(dv.annual) : [];
+  const amax = Math.max(...annual.map(([, v]) => v), 0.0001);
+  const bars = annual.length ? `<div class="months" style="grid-template-columns:repeat(${annual.length},1fr);height:70px">${annual.map(([y, v]) =>
+    `<div class="mbar" title="${y}: ${v}"><i style="height:${v / amax * 50}px;background:var(--grn)"></i><span>${String(y).slice(2)}</span></div>`).join('')}</div>` : '';
+  return `<div class="grid" style="margin-top:0.6rem">
+    <div class="card"><h3>まだ株格付け ${mk.score ?? '—'}点（既存の買いスコア ${(d.extra || {}).buy_score ?? '—'}）</h3>
+      ${(mk.plus || []).map(([k, v]) => kv(k, '+' + v)).join('')}${(mk.minus || []).map(([k, v]) => kv(k, v)).join('')}
+      <div class="dim" style="font-size:0.65rem;margin-top:4px">${(sc.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ')}</div></div>
+    <div class="card"><h3>配当格付け ${dv.grade}${dv.below_vt ? '（利回りがVT約2%以下）' : ''}</h3>
+      ${kv('欠けている条件', (dv.missing || []).join('・') || 'なし')}
+      ${kv(esc(dv.re_source || '利益剰余金') + 'の推移', ((dv.re_values || []).length ? dv.re_trend + '（' + dv.re_values.map(v => num(v / 1e8) + '億').join(' → ') + '）' : 'データなし'))}
+      ${kv('配当性向の推移', (dv.payout_history || []).map(v => v.toFixed(0) + '%').join(' → ') || '—')}
+      ${dv.payout_jump ? kv('注意', '<span class="ng">配当が利益に対して重い（配当性向の急上昇）</span>') : ''}
+      ${dv.growth ? kv('配当5年成長率 / 減配した年', `${f1(dv.growth.cagr_5y)}% / ${dv.growth.drawdown_years ?? '—'}回`) : ''}
+      ${sc.yield_range && sc.yield_range.pct != null ? kv('利回りの過去比（20年）', `${f1(sc.yield_range.pct)}%（今 ${f1(sc.yield_range.now)}%、上限 ${f1(sc.yield_range.max)}%）`) : ''}
+      ${sc.price_at_7pct ? kv('利回り7%になる株価', `${num(sc.price_at_7pct.price)}（${f1(sc.price_at_7pct.pct)}%）`) : ''}
+      ${sc.aristocrat && sc.aristocrat !== '—' ? kv('配当貴族', esc(sc.aristocrat)) : ''}
+      ${bars ? '<div class="dim" style="font-size:0.65rem;margin-top:4px">年間配当の推移</div>' + bars : ''}</div>
+    <div class="card"><h3>チャートの形</h3>
+      ${kv('下げ止まり', `${yn((sc.bottoming || {}).pass)} 安値更新停止${yn((sc.bottoming || {}).no_new_low)} 下辺水平${yn((sc.bottoming || {}).flat_bottom)} 下ヒゲ${yn((sc.bottoming || {}).lower_wick)}`)}
+      ${kv('水平サポート', sc.support && sc.support.nearest ? `${num(sc.support.nearest)}（${f1(sc.support.pct)}%、${sc.support.touches}回）` : '—')}
+      ${kv('節目', sc.round_level ? `${num(sc.round_level.price)}（${f1(sc.round_level.pct)}%）` : '—')}
+      ${kv('逆指値の目安（直近の押し安値）', sc.trailing_stop ? num(sc.trailing_stop) : '—')}
+      ${kv('月足', `連続陽線 ${mo.bull_streak ?? '—'}本 / 直前の連続陰線 ${mo.bear_streak_before ?? '—'}本`)}
+      ${kv('暴落点（' + (cs.date || '—') + '）', cs.held == null ? '—' : (cs.held ? '安値割れず' : '直前6か月の安値を割った') + (cs.above_crash_low_pct != null ? `／安値から ${f1(cs.above_crash_low_pct)}%` : ''))}
+      ${kv('最高値から', `${f1(dp.drop_from_ath)}%下（${dp.ath_date || '—'}、${dp.days_since_ath ?? '—'}営業日前）`)}
+      ${kv('パーフェクトオーダー（5>25>75日線）', dp.po_now ? '今' : `${dp.days_since_po ?? '—'}営業日前`)}
+      ${kv('分類', esc(dp.type || '—'))}
+      ${kv('理想乖離の効きやすさ', esc(sc.band_label || '—'))}
+      ${kv('PBRの過去比', sc.pbr_percentile != null ? f1(sc.pbr_percentile) + '%（0%=過去最低）' : '—')}
+      ${kv('直近20日の対指数', sc.rel20 != null ? f1(sc.rel20) + 'pt' : '—')}
+      ${kv('10年で', sc.gain_10y ? sc.gain_10y.toFixed(1) + '倍' : '—')}
+      ${kv('今月の傾向', ms(sc.month_now))}
+      ${kv('来月の傾向', ms(sc.month_next))}
+      ${sc.pair ? kv('米国の同業（' + esc(sc.pair.ticker) + '）', `25日乖離 ${f1(sc.pair.deviation)}%${sc.pair.at_lower2 ? '（-2σ以下）' : ''}`) : ''}
+    </div></div>`;
 }
 
 function closeDetail() { document.getElementById('modal').classList.remove('open'); charts.forEach(c => c.destroy()); charts = []; }
@@ -396,6 +542,10 @@ document.addEventListener('click', e => {
   if (row) openDetail(row.dataset.t);
 });
 document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; renderTable(); });
+document.getElementById('sortPreset').addEventListener('change', e => { const k = e.target.value; state.sort = {key: k, asc: k === 'verdict'}; renderTable(); });
+document.getElementById('topSort').addEventListener('change', renderTop);
+document.getElementById('calcCap').addEventListener('input', renderCalc);
+document.getElementById('calcTarget').addEventListener('change', renderCalc);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(); closeDetail(); } });
 load();
 </script>

@@ -34,7 +34,8 @@ def _safe(ticker: str) -> str:
 def _normalize(df: pd.DataFrame | None) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame(columns=COLS)
-    df = df.rename(columns=str.lower)[COLS]
+    df = df.rename(columns=str.lower)
+    df = df[COLS + (["dividends"] if "dividends" in df.columns else [])]   # 配当履歴（米国株の配当の推移に使う）
     if getattr(df.index, "tz", None) is not None:
         df.index = df.index.tz_localize(None)
     df.index = pd.DatetimeIndex(df.index).normalize()
@@ -54,6 +55,8 @@ def merge_incremental(cached: pd.DataFrame, recent: pd.DataFrame, tolerance: flo
     """キャッシュに直近分をつなぐ。つなぎ目の終値が tolerance 以上ずれていたら None（全期間を取り直す合図）。"""
     if recent.empty:
         return cached
+    if set(recent.columns) - set(cached.columns):
+        return None          # 列が増えた（古いキャッシュ）→ 全期間を取り直す
     overlap = cached.index.intersection(recent.index)
     if len(overlap) == 0:
         return None

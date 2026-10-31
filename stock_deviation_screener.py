@@ -315,6 +315,7 @@ def calc_deviation(ticker_str, name, market):
         divs = pd.Series(dtype=float)
         is_jp = ticker_str.endswith(".T")
 
+        info = {}
         try:
             info = ticker.info
 
@@ -454,9 +455,15 @@ def calc_deviation(ticker_str, name, market):
         close_prev = df.iloc[-2]["close"] if len(df) >= 2 else cur_price
         cross_above_25ma = (close_prev < sma25_prev) and (cur_price >= cur_sma)
 
+        # 月足は確定した足だけを使う（評価日が月の途中なら当月の途中足を除く）
+        _last_day = df_full.index[-1]
+        _month_incomplete = _last_day.normalize() < (_last_day + pd.offsets.BMonthEnd(0)).normalize()
+
         # ④ 月足で久々の陽線（直近月が陽線 かつ その前2ヶ月が陰線）
         try:
             df_monthly = df_full.resample("ME").agg({"open": "first", "close": "last"}).dropna()
+            if _month_incomplete:
+                df_monthly = df_monthly.iloc[:-1]
             if len(df_monthly) >= 3:
                 latest_m = df_monthly.iloc[-1]
                 prev1_m = df_monthly.iloc[-2]
@@ -474,6 +481,8 @@ def calc_deviation(ticker_str, name, market):
         # ⑤ 手法12: 月足ゴールデンクロス（月足の短期MA(9)が中期MA(24)を上抜け）
         try:
             df_m_close = df_full["close"].resample("ME").last().dropna()
+            if _month_incomplete:
+                df_m_close = df_m_close.iloc[:-1]
             if len(df_m_close) >= 25:
                 m_sma9 = df_m_close.rolling(9).mean()
                 m_sma24 = df_m_close.rolling(24).mean()
@@ -710,6 +719,8 @@ def calc_deviation(ticker_str, name, market):
             "is_quality": is_quality,
             "sector": sector,
             "industry": industry,
+            "market_cap": info.get("marketCap") if isinstance(info, dict) else None,
+            "payout_ratio": info.get("payoutRatio") if isinstance(info, dict) else None,
             "signals": signal_text,
             "n_signals": n_signals,
             **yield_targets,
