@@ -1,0 +1,49 @@
+name: Long-term Full Run (timing check)
+
+# 全銘柄で長期ロジックを実行して所要時間を確認する（サイトには反映しない）
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/longterm-full.yml"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+
+      - name: Restore long-term data cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: longterm-cache-test-${{ github.run_id }}
+          restore-keys: longterm-cache-test-
+
+      - name: Full run (cold cache)
+        env:
+          LONGTERM_CACHE: data/cache
+        run: |
+          start=$(date +%s)
+          python scripts/run_longterm.py --out /tmp/site/data/longterm
+          echo "COLD: $(( $(date +%s) - start ))s"
+
+      - name: Full run again (warm cache = daily case)
+        env:
+          LONGTERM_CACHE: data/cache
+        run: |
+          start=$(date +%s)
+          python scripts/run_longterm.py --out /tmp/site/data/longterm
+          echo "WARM: $(( $(date +%s) - start ))s"
+          du -sh /tmp/site/data/longterm data/cache
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: longterm-site
+          path: /tmp/site
+          retention-days: 7
