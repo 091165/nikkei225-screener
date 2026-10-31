@@ -22,6 +22,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
 from openpyxl.utils import get_column_letter
 from datetime import datetime, timedelta
 import re
+import sys
 import time
 import os
 import json
@@ -508,6 +509,9 @@ def calc_deviation(ticker_str, name, market):
         # 優良財務フラグ: 自己資本比率50%以上 かつ ROE10%以上
         is_quality = equity_ratio >= 50 and roe >= 10
 
+        # ゾーン判定（シグナル判定より前に必要）
+        zone = get_zone(cur_dev, s2l, s3l, s2u, s3u)
+
         # シグナルまとめ（4種類に統合）
         signals = []
         if flag_high_div:
@@ -529,8 +533,6 @@ def calc_deviation(ticker_str, name, market):
                 yield_targets[f"price_at_{pct}pct"] = round(div_per_share / (pct / 100), 1)
             else:
                 yield_targets[f"price_at_{pct}pct"] = 0.0
-
-        zone = get_zone(cur_dev, s2l, s3l, s2u, s3u)
 
         # ========== 買いスコア (0〜100) ==========
         score = 0
@@ -635,6 +637,7 @@ def calc_deviation(ticker_str, name, market):
             **yield_targets,
         }
     except Exception as e:
+        print(f"  [ERROR] {ticker_str}: {type(e).__name__}: {e}")
         return None
 
 
@@ -698,7 +701,7 @@ def main():
 
     if not results:
         print("  [ERROR] No results. Exiting.")
-        return
+        sys.exit(1)
 
     # DataFrameに変換・ソート
     df = pd.DataFrame(results)
