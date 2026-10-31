@@ -1,0 +1,99 @@
+# 長期投資（暴落点ルール）の設定
+# 数値はすべてここで変更できる。既存の理想乖離ダッシュボードには影響しない。
+
+deviation:
+  sma_period: 25            # 乖離率の基準となる単純移動平均の日数
+
+ideal_deviation:
+  method: percentile        # 表示・シグナルに使う方式: percentile（経験的パーセンタイル） / sigma（平均±k×標準偏差）
+  sigma_k: [2, 3]           # sigma 方式の k（-2σ, -3σ / +2σ, +3σ）
+  percentiles:              # percentile 方式で -2σ/-3σ/+2σ/+3σ に相当させる分位点（%）
+    lower2: 2.5
+    lower3: 0.5
+    upper2: 97.5
+    upper3: 99.5
+  min_days: 200             # これより短い履歴の銘柄は理想乖離を計算しない
+
+crash_point:
+  reset_months: 3           # 前回のタッチからこの期間（月）以上あいて初めてタッチした日を暴落点とする
+  episode_max_days: 60      # 暴落点の安値を探す最大営業日数（乖離率が0%以上に戻るまで）
+  entry_window_days: 5      # 条件A: 暴落点から何営業日以内なら「暴落点」とみなすか
+
+  index_jp:
+    ticker: "^N225"
+    threshold_mode: fixed   # fixed（固定の乖離率） / sigma（その指数の理想乖離）
+    threshold: -10.0        # 指数暴落点のしきい値（%）。-7.0 にも変更可
+    severity:               # 暴落度（エピソード中の最小乖離率で判定）
+      small: -7.0
+      medium: -10.0
+      large: -20.0
+
+  index_us:
+    tickers: ["^GSPC", "^DJI"]
+    threshold_mode: sigma   # 米国は各指数の理想乖離を使う（fixed にすると threshold を使用）
+    sigma_level: lower2     # sigma モード時のしきい値: lower2（-2σ相当） / lower3（-3σ相当）
+    threshold: -7.0         # fixed モード時のしきい値（%）
+
+  individual:
+    band: lower2            # 個別暴落点の下限ライン: 理想乖離の lower2（-2σ相当）
+
+legacy_lower_band:
+  lookback_years: 10        # 旧方式の下限: 過去何年の乖離率で数えるか
+  min_touches: 10           # 独立したタッチ回数がこの範囲になる乖離率を探す
+  max_touches: 20
+
+condition_b:                # 上昇トレンド（上場来高値の更新）
+  months: 6                 # 評価日からさかのぼって何か月以内に上場来高値を更新していれば合格
+  old_ath_years: 8          # 上場来高値がこれより古ければ「別相場」とみなし、直近N年高値で代用
+  fallback_high_years: 5
+
+condition_c:                # 暴落点ごとの安値切り上げ
+  rising_streak_strong: 2   # 直近の暴落点で安値が何回連続で切り上がっていれば「強い」とみなすか（3回の暴落点 = 2回の切り上げ）
+
+condition_d:                # 業績
+  min_annual_periods: 3     # 通期で最低何期分のデータが必要か
+  growth_stock_pct: 20.0    # 売上高・純利益の前年比がともにこれ以上なら成長株フラグ
+  aux_in_verdict: false     # 補助チェック（営業CF・CF乖離・自己資本比率・営業利益率）を合否に入れるか
+  ocf_to_op_income_range: [0.5, 2.0]   # 営業CF ÷ 営業利益 がこの範囲なら「大きく離れていない」
+  equity_ratio_min: 60.0
+  op_margin_min: 20.0
+
+signals:
+  monthly_ma: [6, 12, 24]   # 月足パーフェクトオーダーに使う移動平均（か月）
+  bottoming_days: 5         # 下げ止まり: 直近N日で安値を更新していない、または5日線が上向きに転じた
+  income:
+    yield_jp: 4.0
+    yield_us: 6.0
+
+holdings:                   # 条件E・F（保有銘柄の逆指値と売り時）
+  wait_months: 3            # 買付からこの期間は逆指値を提案しない（様子見期間）
+  cut_loss_pct: -10.0       # 様子見期間後、含み損益がこれ以下なら損切り
+  ladder:                   # 含み損益（%）の下限 → 逆指値（買値からの%）。上から順に判定。切り上げのみ
+    - {min_gain: 100.0, stop: 20.0}
+    - {min_gain: 50.0, stop: 10.0}
+    - {min_gain: 30.0, stop: 0.0}
+    - {min_gain: -10.0, stop: -10.0}
+  half_profit_gain: 100.0   # 含み益がこれ以上で、株数が下の値以上なら半分利確を提案
+  half_profit_min_shares: 200
+  no_ath_months: 6          # 売り検討: この期間、上場来高値を更新していない
+  overheat:                 # 過熱警告
+    month_multiple: 2.0     # 1か月で何倍
+    year_multiple: 10.0     # 1年で何倍
+
+backtest:
+  start: "2005-01-01"       # この日以降の暴落点を対象にする
+  shares: 200               # 想定株数（半分利確の判定に使う）
+  financial_lag_months: 3   # 業績は決算期末からこの期間遅らせて使う（発表日が取れないため）
+  forward_months: [3, 6, 12, 24]
+  benchmark_jp: "^N225"
+  benchmark_us: "^GSPC"
+  exit_rules:               # 機械的に適用する売りルール
+    stop: true              # 条件E: 逆指値ラダー・損切り
+    half_profit: true       # 条件F: +100%で半分利確（株数が条件を満たす場合）
+    lower_low: true         # 条件F: 次の暴落点で前回より安値を切り下げたら売り
+    no_ath: true            # 条件F: 様子見期間後、6か月以上上場来高値を更新していなければ売り
+
+swing:                      # 別戦略（長期ロジックとは混ぜない）
+  sma: 5
+  entry_dev: -5.0           # 5日線からの乖離率がこれ以下で買い
+  hold_days: 5              # この営業日数後の終値で売り

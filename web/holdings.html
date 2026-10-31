@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>理想乖離ダッシュボード — 保有管理</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="holdings_logic.js"></script>
+<style>
+:root{--bg:#0a0e17;--s1:#111827;--s2:#1a2235;--bd:#1e2a3a;--tx:#e2e8f0;--dim:#64748b;--ac:#38bdf8;--red:#ef4444;--org:#f97316;--ylw:#eab308;--grn:#22c55e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+.nav{display:flex;border-bottom:2px solid var(--bd);background:var(--s1);overflow-x:auto}
+.nav a{padding:0.8rem 1.2rem;font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:600;color:var(--dim);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.nav a.nav-active{color:var(--ac);border-bottom-color:var(--ac)}
+header{padding:1.2rem 1rem 0.8rem;border-bottom:1px solid var(--bd)}
+header h1{font-family:'JetBrains Mono',monospace;font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--ac),#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.meta{font-size:0.72rem;color:var(--dim);margin-top:0.3rem}
+.wrap{max-width:900px;margin:0 auto;padding:1rem}
+.policy{font-size:0.8rem;border-left:3px solid var(--ac);background:var(--s1);padding:0.6rem 0.7rem;border-radius:4px;margin:0.5rem 0}
+.note{font-size:0.7rem;color:var(--dim);margin:0.4rem 0}
+.sec{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;margin:1.3rem 0 0.6rem}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.9rem;margin-bottom:0.6rem}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.5rem}
+label{font-size:0.7rem;color:var(--dim);display:flex;flex-direction:column;gap:3px}
+input,textarea{background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);padding:0.55rem;font-size:0.9rem;font-family:inherit;width:100%}
+input:focus,textarea:focus{outline:none;border-color:var(--ac)}
+.btn{background:var(--ac);color:var(--bg);border:0;border-radius:6px;padding:0.6rem 0.9rem;font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit}
+.btn.ghost{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+.btns{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem}
+.st{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.7rem;text-align:center}
+.st .n{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:700}
+.st .l{font-size:0.65rem;color:var(--dim)}
+.h-head{display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem}
+.h-name{font-weight:700}
+.h-sub{font-size:0.7rem;color:var(--dim)}
+.gain{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700}
+.act{margin-top:0.5rem;padding:0.55rem 0.65rem;border-radius:6px;font-size:0.82rem;font-weight:600}
+.act.wait{background:var(--s2);color:var(--dim)}
+.act.cut{background:rgba(239,68,68,0.18);color:var(--red)}
+.act.stop{background:rgba(56,189,248,0.12);color:var(--ac)}
+.alerts{margin-top:0.4rem;font-size:0.75rem;line-height:1.7}
+.alerts div::before{content:'⚠ ';color:var(--ylw)}
+.kv{display:flex;justify-content:space-between;font-size:0.75rem;padding:2px 0;border-bottom:1px dashed var(--bd)}
+.kv span:first-child{color:var(--dim)}
+.neg{color:var(--red)}.pos{color:var(--grn)}.dim{color:var(--dim)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem}
+.mini{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:0.55rem}
+.mini .t{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.8rem}
+.mini .n{font-size:0.7rem;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini .m{font-size:0.68rem;margin-top:3px;font-family:'JetBrains Mono',monospace}
+details summary{cursor:pointer;color:var(--ac);font-size:0.78rem;margin:0.3rem 0}
+@media (max-width:640px){.stats .n{font-size:1.15rem}}
+</style>
+</head>
+<body>
+<div class="nav">
+  <a href="index.html">🇯🇵 日本株</a>
+  <a href="us.html">🇺🇸 米国株</a>
+  <a href="longterm.html">📉 長期（暴落点）</a>
+  <a href="holdings.html" class="nav-active">💼 保有管理</a>
+</div>
+<header>
+  <h1>保有管理</h1>
+  <div class="meta" id="meta">読み込み中…</div>
+</header>
+<div class="wrap">
+  <div class="policy">原則：含み益があるかぎり保有継続。売る場合も半分まで、残りは同値〜+20%の逆指値で継続。</div>
+  <div class="note">保有データはこのブラウザの中（localStorage）にだけ保存され、サイトやリポジトリには送られません。機種変更やブラウザのデータ削除に備えて「書き出し」でバックアップしてください。ルールは機械的な目安です。最終判断はチャートを自分の目で確認してください。</div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="sec">保有銘柄</div>
+  <div id="list"></div>
+
+  <details id="formBox"><summary>＋ 保有銘柄を追加・編集</summary>
+    <div class="card">
+      <form id="form">
+        <label>銘柄コード<input name="ticker" required placeholder="例: 3038.T / AAPL" autocomplete="off"></label>
+        <label>買付日<input name="date" type="date" required></label>
+        <label>買値<input name="price" type="number" step="any" min="0" required inputmode="decimal"></label>
+        <label>株数<input name="shares" type="number" step="1" min="1" required inputmode="numeric" value="100"></label>
+        <label>現在値（任意・データがない銘柄用）<input name="manual" type="number" step="any" min="0" inputmode="decimal"></label>
+        <label style="grid-column:1/-1">メモ<textarea name="memo" rows="2"></textarea></label>
+        <input type="hidden" name="id">
+        <div class="btns" style="grid-column:1/-1"><button class="btn" type="submit">保存</button><button class="btn ghost" type="reset">クリア</button></div>
+      </form>
+    </div>
+  </details>
+
+  <div class="sec">バックアップ</div>
+  <div class="btns">
+    <button class="btn ghost" id="export">JSONを書き出し</button>
+    <label class="btn ghost" style="flex-direction:row">JSONを読み込み<input type="file" id="import" accept="application/json,.json" style="display:none"></label>
+  </div>
+
+  <div class="sec">次の暴落で新しく仕込む候補（保有と重ならないもの）</div>
+  <div class="cards" id="next"></div>
+</div>
+
+<script>
+const BASE = 'data/longterm/';
+const KEY = 'longterm-holdings-v1';
+const L = window.HoldingsLogic;
+let summary = null, cfg = L.DEFAULT_CFG;
+const detailCache = {};
+
+function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
+function save(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) { alert('保存できませんでした（プライベートモード等）。書き出しでバックアップしてください。'); } }
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => v == null ? '—' : (+v).toLocaleString('ja-JP', {maximumFractionDigits: v < 100 ? 2 : 0});
+const today = () => new Date(new Date().toDateString());
+
+async function detail(t) {
+  if (t in detailCache) return detailCache[t];
+  try { detailCache[t] = await fetch(BASE + 'stocks/' + encodeURIComponent(t) + '.json').then(r => r.ok ? r.json() : null); }
+  catch (e) { detailCache[t] = null; }
+  return detailCache[t];
+}
+
+async function render() {
+  const list = load();
+  const el = document.getElementById('list');
+  if (!list.length) el.innerHTML = '<div class="card dim" style="font-size:0.8rem">まだ保有銘柄がありません。「＋ 保有銘柄を追加・編集」から入力してください。</div>';
+  const stops = [];
+  let html = '';
+  for (const h of list) {
+    const d = await detail(h.ticker);
+    const price = d ? d.price : (h.manual || null);
+    const jp = h.ticker.endsWith('.T');
+    let body = '';
+    if (price == null) {
+      body = '<div class="act wait">株価データがありません（対象外の銘柄）。編集で「現在値」を入力すると計算します。</div>';
+      stops.push(h.maxStop ?? null);
+    } else {
+      const rec = L.recommend({entryPrice: h.price, entryDate: h.date, asOf: today(), price, prevStop: h.maxStop ?? null, jp}, cfg);
+      if (rec.action === 'set_stop' && (h.maxStop == null || rec.stopPct > h.maxStop)) { h.maxStop = rec.stopPct; h.maxStopDate = new Date().toISOString().slice(0, 10); }
+      stops.push(rec.action === 'set_stop' ? rec.stopPct : (h.maxStop ?? null));
+      const g = rec.gain;
+      let act;
+      if (rec.action === 'wait') act = `<div class="act wait">様子見期間：あと${rec.daysLeft}日（${cfg.wait_months}か月経過後に逆指値を決める）</div>`;
+      else if (rec.action === 'cut_loss') act = `<div class="act cut">損切り（見込み違い）：含み損 ${g.toFixed(1)}%</div>`;
+      else act = `<div class="act stop">逆指値 ${num(rec.stopPrice)}（買値${rec.stopPct >= 0 ? '+' : ''}${rec.stopPct}%）${rec.stopPct > (L.ladderStop(g, cfg) ?? -Infinity) ? '　※到達済みの段階を維持' : ''}</div>`;
+      const alerts = L.sellAlerts({entryPrice: h.price, entryDate: h.date, price, shares: h.shares, asOf: today()}, d, cfg);
+      body = `<div class="gain ${g < 0 ? 'neg' : 'pos'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</div>
+        <div class="kv"><span>現在値 / 買値</span><span class="mono">${num(price)} / ${num(h.price)}${d ? '' : '（手入力）'}</span></div>
+        <div class="kv"><span>評価損益</span><span class="mono">${num((price - h.price) * h.shares)}</span></div>
+        <div class="kv"><span>到達した最大の逆指値</span><span class="mono">${h.maxStop != null ? (h.maxStop >= 0 ? '+' : '') + h.maxStop + '%（' + h.maxStopDate + '）' : '—'}</span></div>
+        ${d ? `<div class="kv"><span>長期の判定</span><span>${esc(d.verdict.label)}</span></div>` : ''}
+        ${act}
+        ${alerts.length ? `<div class="alerts"><b>売り検討</b>${alerts.map(a => `<div>${esc(a.text)}</div>`).join('')}</div>` : ''}`;
+    }
+    html += `<div class="card"><div class="h-head"><div><div class="h-name">${esc(h.ticker)} ${esc(d ? d.name : '')}</div>
+      <div class="h-sub">買付 ${esc(h.date)}　${num(h.shares)}株${h.memo ? '　' + esc(h.memo) : ''}</div></div>
+      <div class="btns"><button class="btn ghost" data-edit="${h.id}">編集</button><button class="btn danger" data-del="${h.id}">削除</button></div></div>${body}</div>`;
+  }
+  if (list.length) el.innerHTML = html;
+  save(list);   // 到達した逆指値の段階を記録
+
+  const s = L.settledStats(stops);
+  document.getElementById('stats').innerHTML = `
+    <div class="st"><div class="n">${s.n}</div><div class="l">保有銘柄</div></div>
+    <div class="st"><div class="n pos">${s.settled}</div><div class="l">含み益が定着（逆指値が同値以上）</div></div>
+    <div class="st"><div class="n">${s.ratio.toFixed(0)}%</div><div class="l">定着の比率</div></div>`;
+
+  const held = new Set(list.map(h => h.ticker));
+  const next = summary ? summary.stocks.filter(r => r.verdict === 'watch' && !held.has(r.ticker))
+    .sort((a, b) => a.dist_to_lower2 - b.dist_to_lower2).slice(0, 20) : [];
+  document.getElementById('next').innerHTML = next.length ? next.map(r => `<div class="mini"><div class="t">${esc(r.ticker)}</div><div class="n">${esc(r.name)}</div>
+    <div class="m">-2σまで ${(+r.dist_to_lower2).toFixed(1)}%</div></div>`).join('') : '<div class="dim" style="font-size:0.75rem;grid-column:1/-1">該当なし</div>';
+}
+
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const list = load();
+  const item = {id: f.get('id') || String(Date.now()), ticker: f.get('ticker').trim().toUpperCase(), date: f.get('date'),
+    price: +f.get('price'), shares: +f.get('shares'), manual: f.get('manual') ? +f.get('manual') : null, memo: f.get('memo').trim()};
+  if (/^\d{4}$|^\d{3}[A-Z]$/.test(item.ticker)) item.ticker += '.T';   // 4桁コードは日本株として扱う
+  const i = list.findIndex(h => h.id === item.id);
+  if (i >= 0) list[i] = {...list[i], ...item}; else list.push(item);
+  save(list); e.target.reset(); document.getElementById('formBox').open = false; render();
+});
+document.addEventListener('click', e => {
+  const del = e.target.closest('[data-del]');
+  if (del && confirm('この保有銘柄を削除しますか？')) { save(load().filter(h => h.id !== del.dataset.del)); render(); return; }
+  const ed = e.target.closest('[data-edit]');
+  if (ed) {
+    const h = load().find(x => x.id === ed.dataset.edit), f = document.getElementById('form');
+    for (const k of ['id', 'ticker', 'date', 'price', 'shares', 'manual', 'memo']) f.elements[k].value = h[k] ?? '';
+    document.getElementById('formBox').open = true; f.scrollIntoView({behavior: 'smooth'});
+  }
+});
+document.getElementById('export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({version: 1, exported_at: new Date().toISOString(), holdings: load()}, null, 1)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `holdings-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById('import').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const list = Array.isArray(data) ? data : data.holdings;
+    if (!Array.isArray(list)) throw new Error('形式が違います');
+    if (confirm(`${list.length}銘柄を読み込みます。今の保有データは置き換わります。よろしいですか？`)) { save(list); render(); }
+  } catch (err) { alert('読み込めませんでした: ' + err.message); }
+  e.target.value = '';
+});
+
+(async () => {
+  try {
+    summary = await fetch(BASE + 'summary.json').then(r => r.json());
+    if (summary.holdings_config) cfg = summary.holdings_config;
+    document.getElementById('meta').textContent = `株価の更新: ${summary.generated_at}`;
+  } catch (e) { document.getElementById('meta').textContent = '株価データを読み込めませんでした（手入力の現在値で計算します）'; }
+  render();
+})();
+</script>
+</body>
+</html>

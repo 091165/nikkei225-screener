@@ -38,6 +38,24 @@ jobs:
           mkdir -p output
           OUTPUT_DIR=output python stock_deviation_screener.py
 
+      # ─── 長期（暴落点）タブ ───
+      # 株価・業績のキャッシュは Actions cache に保存（リポジトリにはコミットしない）
+      - name: Restore long-term data cache
+        uses: actions/cache@v4
+        with:
+          path: data/cache
+          key: longterm-cache-${{ github.run_id }}
+          restore-keys: longterm-cache-
+
+      - name: Long-term (crash point) analysis
+        continue-on-error: true   # 失敗しても既存ダッシュボードの更新は止めない
+        env:
+          LONGTERM_CACHE: data/cache
+        run: |
+          start=$(date +%s)
+          python scripts/run_longterm.py
+          echo "long-term step took $(( $(date +%s) - start ))s"
+
       - name: Generate web dashboard
         run: |
           OUTPUT_DIR=output python generate_web_dashboard.py
@@ -64,3 +82,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./output/docs
           publish_branch: gh-pages
+          force_orphan: true      # gh-pages は最新版だけを持つ（毎日のJSONで履歴が膨らまないように）
