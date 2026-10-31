@@ -33,6 +33,8 @@ from longterm.indicators import deviation  # noqa: E402
 from longterm.market import breadth, index_regime, load_crash_notes  # noqa: E402
 
 BREADTH_CSV = os.path.join(ROOT, "output", "breadth_history.csv")
+MACRO_LAST = os.path.join(ROOT, "output", "macro_last.json")
+FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={}"
 HISTORY_CSV = os.path.join(ROOT, "output", "longterm_history.csv")
 
 
@@ -90,6 +92,60 @@ def manual_context():
         except (KeyError, ValueError):
             pass
     return {"domestic": dom, "peer_groups": peer, "pairs": pairs, "watchlist": watch, "div_history": divh}
+
+
+def fetch_fred(series: str) -> pd.Series | None:
+    """FRED の公開CSV（日付, 値）。取得できなければ None。"""
+    try:
+        import io
+        import requests
+        r = requests.get(FRED_URL.format(series), timeout=20)
+        r.raise_for_status()
+        df = pd.read_csv(io.StringIO(r.text))
+        df.columns = ["date", "value"]
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df = df.dropna()
+        return pd.Series(df["value"].values, index=pd.to_datetime(df["date"]))
+    except Exception as e:
+        print(f"  [WARN] FRED {series}: {type(e).__name__}: {e}")
+        return None
+
+
+def macro_signals() -> dict:
+    """Z-3: 長短金利差（T10Y2Y）と雇用者数の前月比（PAYEMS）。取れない日は前回値（output/macro_last.json）を使う。"""
+    last = {}
+    if os.path.exists(MACRO_LAST):
+        with open(MACRO_LAST, encoding="utf-8") as f:
+            last = json.load(f)
+    out = {}
+    t = fetch_fred("T10Y2Y")
+    if t is not None and len(t):
+        out["t10y2y"] = {"value": float(t.iloc[-1]), "date": t.index[-1].strftime("%Y-%m-%d"), "stale": False}
+    elif "t10y2y" in last:
+        out["t10y2y"] = {**last["t10y2y"], "stale": True}
+    p = fetch_fred("PAYEMS")
+    if p is not None and len(p) >= 2:
+        out["payems"] = {"change": float(p.iloc[-1] - p.iloc[-2]) * 1000, "date": p.index[-1].strftime("%Y-%m-%d"), "stale": False}
+    elif "payems" in last:
+        out["payems"] = {**last["payems"], "stale": True}
+    fresh = {k: {kk: vv for kk, vv in v.items() if kk != "stale"} for k, v in out.items() if not v.get("stale")}
+    if fresh:
+        with open(MACRO_LAST, "w", encoding="utf-8") as f:
+            json.dump({**last, **fresh}, f, ensure_ascii=False, indent=1)
+    out["signals"] = S.recession_signals((out.get("t10y2y") or {}).get("value"), (out.get("payems") or {}).get("change"))
+    return out
+
+
+def nikkei_per() -> dict | None:
+    """manual_inputs.csv（date,nikkei_per）の最新値。"""
+    rows = [r for r in read_csv_rows("manual_inputs.csv") if (r.get("nikkei_per") or "").strip()]
+    if not rows:
+        return None
+    r = sorted(rows, key=lambda x: x["date"])[-1]
+    try:
+        return {"value": float(r["nikkei_per"]), "date": r["date"]}
+    except ValueError:
+        return None
 
 
 def index_summary(ix):
@@ -178,7 +234,7 @@ def main():
     ctx["prev_cheap_pbr"] = previous_cheap_pbr()
 
     jp_cfg, us_cfg = cfg["crash_point"]["index_jp"], cfg["crash_point"]["index_us"]
-    aux = ["JPY=X", "^VIX"]
+    aux = ["JPY=X", "^VIX", "^TNX"]
     idx_df = {}
     for t in [jp_cfg["ticker"]] + us_cfg["tickers"] + aux:
         try:
@@ -199,6 +255,8 @@ def main():
         usdjpy_dev = float(deviation(idx_df["JPY=X"]["close"], 25).iloc[-1])
     ctx["yen_strong"] = bool(usdjpy_dev is not None and usdjpy_dev < 0)   # ドル円が25日線より下 = 円高方向
     ctx["index_dev_jp"] = idx["jp"][0]["deviation"]
+    ctx["bond_yield"] = (S.bond_yield_pct(float(idx_df["^TNX"]["close"].iloc[-1]))
+                         if not idx_df["^TNX"].empty else None)
 
     def work(item):
         t, n, m = item
@@ -293,6 +351,15 @@ def main():
         })
         update_score_history(as_of, rows)
     notes = load_crash_notes()
+    # Z-3: 借金の大きい大型株がそろって -2σ 以下か
+    debt = [r for r in results if r["ticker"] in cfg["macro"]["debt_caps"]]
+    debt_warn = bool(debt and len(debt) == len(cfg["macro"]["debt_caps"])
+                     and all(r["deviation"] <= r["ideal"]["lower2"] for r in debt))
+    per = nikkei_per()
+    if per:
+        m_ = cfg["macro"]
+        per["label"] = ("買い場の目安" if per["value"] <= m_["nikkei_per_buy"] else
+                        "いったん売りの目安" if per["value"] >= m_["nikkei_per_sell"] else "中間")
     vix = None
     if not idx_df["^VIX"].empty:
         vix = {"value": float(idx_df["^VIX"]["close"].iloc[-1]), "as_of": idx_df["^VIX"].index[-1].strftime("%Y-%m-%d")}
@@ -305,9 +372,12 @@ def main():
                "ex_dividend_notice": ex_dividend_notice(pd.Timestamp(as_of)),
                "usdjpy_dev": usdjpy_dev, "yen_strong": ctx["yen_strong"],
                "breadth_history": hist,
-               "breadth_note": "日経225の採用銘柄で集計（元の基準はTOPIX100）"},
+               "breadth_note": "日経225の採用銘柄で集計（元の基準はTOPIX100）",
+               "nikkei_per": per, "nikkei_per_range": [cfg["macro"]["nikkei_per_buy"], cfg["macro"]["nikkei_per_sell"]]},
         "us": {"indices": [index_regime(ix, idx_df[ix["ticker"]], us_cfg, cfg, notes) for ix in idx["us"]],
-               "breadth": breadth(flags["us"]), "vix": vix},
+               "breadth": breadth(flags["us"]), "vix": vix,
+               "macro": macro_signals() if not args.tickers else {}, "bond_yield": ctx["bond_yield"],
+               "debt_caps_warning": debt_warn, "debt_caps": cfg["macro"]["debt_caps"]},
     }
     with open(os.path.join(args.out, "market.json"), "w", encoding="utf-8") as fp:
         json.dump(_clean(market), fp, ensure_ascii=False)

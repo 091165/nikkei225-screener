@@ -151,3 +151,14 @@ madakabu:                   # 別スコア「まだ株格付け」（既存の�
     payout_jump: -10        # 配当性向の急上昇
     below_vt: -10           # 利回り2%以下
     knife: -5               # -2σ以下なのに下げ止まり未確認
+    pl_down: -10            # 業績の推移（売上・経常利益・純利益）のうち2つ以上が下降
+
+fundamentals:               # Z-1 業績・資産の見方（日本=PBR・DOE、米国=連続増配・ROA・PSR）
+  doe_jump_pt: 1.0          # DOEが前期比でこのポイントを超えて上がったら「急上昇」（配当格付けAにしない）
+  dividend_cut_years: 10    # 配当格付けA: 直近この年数で減配なし（jp_dividend_history.csv がある銘柄のみ判定）
+
+macro:                      # Z-3・Z-4 地合いの補助（表示のみ）
+  nikkei_per_buy: 12.0      # 日経平均PERの目安: これ以下は買い場
+  nikkei_per_sell: 16.0     #   これ以上はいったん売り
+  bond_spread_min: 2.0      # 米国株の配当利回り − 10年債利回り がこれ未満なら「債券より妙味が小さい」
+  debt_caps: ["MCD", "HD"]  # 借金の大きい大型株（そろって-2σ以下なら金融引き締まりに注意）

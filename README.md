@@ -157,4 +157,6 @@ CHART_YEARS = 3   # 直近3年表示に変更
   - `jp_us_pairs.csv`：日米の同業ペア
   - `watchlist.csv`：欲しい銘柄
   - `jp_dividend_history.csv`：日本株の年間配当の推移
+  - `manual_inputs.csv`：日経平均PER（`date,nikkei_per` を1行追加。最新の行を地合いパネルに表示）
+- **業績・買い方・マクロ**：詳細画面に業績推移・DOE/ROA・PSR・買い方スタイル（GC待ち／乖離で拾ってよい）・上方乖離の分類を表示。米国パネルに FRED の長短金利差・雇用者数・米10年債利回りを表示します。
 - 研究用：`python research/pair_swing_backtest.py`（下方首位買い×上方首位売りの検証。ページには出しません）

@@ -215,11 +215,24 @@ function renderMarket() {
       <div class="line">下方乖離（25日線より下） <b>${b.n ? Math.round(b.below_ma_pct * b.n / 100) : '—'}／${b.n || '—'}銘柄（${f1(b.below_ma_pct)}%）</b>：${esc(bs.label || '—')}　-2σ以下 ${b.below_lower2_n ?? '—'}銘柄</div>
       ${b.adr25 != null ? `<div class="line">25日騰落レシオ <b>${f1(b.adr25)}%</b>（${esc(b.adr25_label)}）　直近1年の最低 ${f1(b.adr25_min_1y)}%まで あと${f1(b.adr25 - b.adr25_min_1y)}pt</div>` : ''}
       <div class="line">今月（${cur}月）は${esc(m.month_tendency || '')}</div>
+      <div class="line">${m.nikkei_per ? `日経平均PER <b>${f1(m.nikkei_per.value)}倍</b>（${esc(m.nikkei_per.label)}、${esc(m.nikkei_per.date)}時点。目安：${m.nikkei_per_range[0]}倍で買い場・${m.nikkei_per_range[1]}倍でいったん売り）`
+        : '日経平均PER：未入力（manual_inputs.csv に週1回入力すると表示されます）'}</div>
+      <div class="line">配当格付けA <b>${rows().filter(r => r.div_grade === 'A').length}銘柄</b>（B ${rows().filter(r => r.div_grade === 'B').length}銘柄）</div>
       ${m.yen_strong != null ? `<div class="line">ドル円の25日乖離 ${f1(m.usdjpy_dev)}%：${m.yen_strong ? '円高方向（内需株に追い風）' : '円安方向'}</div>` : ''}
       ${m.ex_dividend_notice ? `<div class="line" style="color:var(--ylw)">${esc(m.ex_dividend_notice)}</div>` : ''}
       ${spark(m.breadth_history || [])}
     </div>` + html;
-  } else if (m.vix) {
+  } else {
+    const mc = m.macro || {}, sg = mc.signals || {}, t = mc.t10y2y, p = mc.payems;
+    html += `<div class="card"><h3>景気後退のサイン・金利（参考）</h3>
+      ${sg.both ? '<div class="line" style="color:var(--red)"><b>景気後退のサインが2つそろっている</b></div>' : ''}
+      <div class="line">長短金利差（10年−2年）：${t ? `<b class="${t.value < 0 ? 'neg' : ''}">${t.value >= 0 ? '+' : ''}${t.value.toFixed(2)}%</b>（${t.value < 0 ? '逆転中' : '逆転なし'}、${esc(t.date)}${t.stale ? '時点の前回値' : ''}）` : '取得できませんでした'}</div>
+      <div class="line">雇用者数の前月比：${p ? `<b class="${p.change < 0 ? 'neg' : ''}">${p.change >= 0 ? '+' : ''}${(p.change / 10000).toFixed(1)}万人</b>（${esc(p.date)}${p.stale ? '時点の前回値' : ''}）` : '取得できませんでした'}</div>
+      <div class="line">米10年債利回り：${m.bond_yield != null ? `<b>${f1(m.bond_yield)}%</b>（株の配当は最低でも+2%ほしい）` : '—'}</div>
+      ${m.debt_caps_warning ? `<div class="line" style="color:var(--ylw)">借金の大きい大型株（${(m.debt_caps || []).join('・')}）がそろって-2σ以下：金融の引き締まりに注意</div>` : ''}
+    </div>`;
+  }
+  if (state.region !== 'jp' && m.vix) {
     html += `<div class="card"><h3>恐怖指数 VIX（参考）</h3><div class="big">${f1(m.vix.value)}</div>
       <div class="dim" style="font-size:0.7rem">${m.vix.as_of}。判定・スコアには使いません。恐怖指数が高くても、乖離率が浅ければ見送りが基本。</div></div>`;
   }
@@ -311,9 +324,11 @@ const COLS = [
   ['deviation', '25日乖離'], ['dist_to_lower2', '-2σまで'], ['latest_crash_date', '直近暴落点'],
   ['days_since_high', 'B 高値から'], ['c_streak', 'C 切上回数'], ['revenue_streak', 'D 連続増'],
   ['relative_strength', '相対強さ'], ['monthly_po', '月足PO'], ['div_yield', '配当'],
-  ['madakabu', 'まだ株'], ['div_grade', '配当格付け'], ['buy_score', '買いスコア'], ['tags', 'シグナル']
+  ['madakabu', 'まだ株'], ['div_grade', '配当格付け'], ['pl_trend', '業績推移'], ['buy_score', '買いスコア'], ['tags', 'シグナル']
 ];
 const GORDER = {A: 4, B: 3, C: 2, '—': 1};
+const PL = {up: '↗', mixed: '→', down: '↘', unknown: '—'};
+const PLORDER = {up: 3, mixed: 2, down: 1, unknown: 0};
 
 function renderTable() {
   let rs = rows();
@@ -328,7 +343,8 @@ function renderTable() {
   if (state.q) { const q = state.q.toLowerCase(); rs = rs.filter(r => r.ticker.toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q)); }
   const {key, asc} = state.sort;
   const val = r => key === 'verdict' ? VORDER[r.verdict] * 1000 + (r.dist_to_lower2 ?? 0)
-    : key === 'div_grade' ? GORDER[r.div_grade] : key === 'tags' ? (r.tags || []).length : r[key];
+    : key === 'div_grade' ? GORDER[r.div_grade] : key === 'pl_trend' ? PLORDER[r.pl_trend] ?? 0
+    : key === 'tags' ? (r.tags || []).length : r[key];
   rs.sort((a, b) => { const x = val(a), y = val(b); if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * (asc ? 1 : -1); });
   const t = document.getElementById('tbl');
   t.innerHTML = `<thead><tr>${COLS.map(([k, l]) => `<th data-k="${k}">${l}${state.sort.key === k ? (asc ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>` +
@@ -341,7 +357,8 @@ function renderTable() {
       <td>売${r.revenue_streak}/益${r.net_income_streak} ${yn(r.d)}${r.growth_stock ? ' <span class="pos">成長</span>' : ''}</td>
       <td>${yn(r.relative_strength)}</td><td>${yn(r.monthly_po)}</td>
       <td class="${r.below_vt ? 'vt' : ''}" title="${r.below_vt ? 'VT（約2%）以下' : ''}">${r.div_yield ? (+r.div_yield).toFixed(2) + '%' : '—'}</td>
-      <td>${r.madakabu ?? '—'}</td><td class="g-${r.div_grade}">${r.div_grade || '—'}</td><td>${r.buy_score ?? '—'}</td>
+      <td>${r.madakabu ?? '—'}</td><td class="g-${r.div_grade}">${r.div_grade || '—'}</td>
+      <td class="${r.pl_trend === 'down' ? 'neg' : r.pl_trend === 'up' ? 'pos' : ''}">${PL[r.pl_trend] || '—'}</td><td>${r.buy_score ?? '—'}</td>
       <td class="tags" style="font-family:inherit">${(r.tags || []).map(x => `<span class="tag">${esc(x)}</span>`).join('')}</td></tr>`).join('') + '</tbody>';
 }
 
@@ -458,6 +475,7 @@ function extraCard(d) {
       ${sc.price_at_7pct ? kv('利回り7%になる株価', `${num(sc.price_at_7pct.price)}（${f1(sc.price_at_7pct.pct)}%）`) : ''}
       ${sc.aristocrat && sc.aristocrat !== '—' ? kv('配当貴族', esc(sc.aristocrat)) : ''}
       ${bars ? '<div class="dim" style="font-size:0.65rem;margin-top:4px">年間配当の推移</div>' + bars : ''}</div>
+    ${fundCard(d)}
     <div class="card"><h3>チャートの形</h3>
       ${kv('下げ止まり', `${yn((sc.bottoming || {}).pass)} 安値更新停止${yn((sc.bottoming || {}).no_new_low)} 下辺水平${yn((sc.bottoming || {}).flat_bottom)} 下ヒゲ${yn((sc.bottoming || {}).lower_wick)}`)}
       ${kv('水平サポート', sc.support && sc.support.nearest ? `${num(sc.support.nearest)}（${f1(sc.support.pct)}%、${sc.support.touches}回）` : '—')}
@@ -476,6 +494,28 @@ function extraCard(d) {
       ${kv('来月の傾向', ms(sc.month_next))}
       ${sc.pair ? kv('米国の同業（' + esc(sc.pair.ticker) + '）', `25日乖離 ${f1(sc.pair.deviation)}%${sc.pair.at_lower2 ? '（-2σ以下）' : ''}`) : ''}
     </div></div>`;
+}
+
+function fundCard(d) {
+  const sc = d.screens || {}, f = sc.fundamentals, bs = sc.buy_style || {};
+  if (!f) return '';
+  const jp = d.ticker.endsWith('.T');
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`;
+  const ar = x => PL[x] || '—';
+  const big = v => v == null ? '—' : num(v / 1e8) + '億';
+  return `<div class="card"><h3>業績・資産（${jp ? '日本株：PBR・DOEを見る' : '米国株：連続増配・ROA・PSRを見る'}）</h3>
+    ${kv('業績の推移', `<b>${ar(f.pl.trend)}</b>（売上${ar(f.pl.revenue)} 経常${ar(f.pl.ordinary)} 純利益${ar(f.pl.net_income)}）`)}
+    ${kv('売上高', (f.revenue || []).map(big).join(' → ') || '—')}
+    ${kv('純利益', (f.net_income || []).map(big).join(' → ') || '—')}
+    ${jp ? kv('DOE（推移）', f.equity_negative ? '—（株主資本がマイナス）' : ((f.doe_history || []).map(v => v == null ? '—' : v.toFixed(1) + '%').join(' → ') || '—') + (f.doe_jumped ? ' <span class="ng">急上昇</span>' : '')) : ''}
+    ${!jp ? kv('ROA', f.roa != null ? f1(f.roa) + '%' : '—') : ''}
+    ${kv('PSR（時価総額÷売上）', f.psr != null ? f.psr.toFixed(2) + '倍' : '—')}
+    ${f.equity_negative ? kv('注意', '株主資本がマイナス（PBR・DOEは使えない）') : ''}
+    ${!jp && sc.bond_spread != null ? kv('配当利回り − 米10年債', `${sc.bond_spread >= 0 ? '+' : ''}${f1(sc.bond_spread)}%`) : ''}
+    ${kv('買い方の型', esc(bs.style || '—'))}
+    ${(bs.notes || []).map(n => kv('', `<span style="color:var(--ylw)">${esc(n)}</span>`)).join('')}
+    ${kv('上方乖離の見分け', esc(sc.upside || '—'))}
+  </div>`;
 }
 
 function closeDetail() { document.getElementById('modal').classList.remove('open'); charts.forEach(c => c.destroy()); charts = []; }

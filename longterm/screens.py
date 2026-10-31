@@ -394,3 +394,104 @@ def aristocrat_signal(consec_years, div_yield, market_cap_usd, cut_last_year: bo
     if consec_years >= 25 and y >= 5:
         return "監視"
     return "—"
+
+
+# ─── Z-1 業績の推移・DOE・ROA・PSR ─────────────────────
+def series_trend(values: list[float]) -> str:
+    """直近4期で、前期より減った期が1回以下 かつ 最新が最古以上なら up。最新が最古より下なら down。それ以外 flat。"""
+    v = [x for x in values if x is not None and not (isinstance(x, float) and math.isnan(x))][-4:]
+    if len(v) < 2:
+        return "unknown"
+    decreases = sum(1 for a, b in zip(v, v[1:]) if b < a)
+    if decreases <= 1 and v[-1] >= v[0]:
+        return "up"
+    if v[-1] < v[0]:
+        return "down"
+    return "flat"
+
+
+def pl_trend(revenue: list[float], ordinary: list[float], net_income: list[float]) -> dict:
+    """売上・経常利益（なければ営業利益）・純利益の推移。3つとも up なら up、下降が1つなら mixed、2つ以上なら down。"""
+    t = {"revenue": series_trend(revenue), "ordinary": series_trend(ordinary), "net_income": series_trend(net_income)}
+    known = [x for x in t.values() if x != "unknown"]
+    if not known:
+        return {"trend": "unknown", **t}
+    downs = sum(1 for x in known if x == "down")
+    trend = "up" if downs == 0 else ("mixed" if downs == 1 else "down")
+    return {"trend": trend, **t}
+
+
+def doe_history(dividends_paid: list[float], equity: list[float]) -> list[float | None]:
+    """DOE（配当総額 ÷ 株主資本、%）。株主資本がマイナス（債務超過扱い）の期は None。"""
+    out = []
+    for d, e in zip(dividends_paid, equity):
+        out.append(abs(d) / e * 100 if e and e > 0 else None)
+    return out
+
+
+def doe_jumped(history: list[float | None], max_pt: float) -> bool:
+    h = [x for x in history if x is not None]
+    return len(h) >= 2 and h[-1] - h[-2] > max_pt
+
+
+def ratio_pct(num: float | None, den: float | None) -> float | None:
+    if num is None or den is None or den <= 0:
+        return None
+    return num / den * 100
+
+
+# ─── Z-2 買い方の型 ───────────────────────────────────
+DEFENSIVE_SECTORS = {"生活必需品", "公益", "通信", "Consumer Defensive", "Utilities", "Communication Services"}
+GC_WAIT_SECTORS = {"ヘルスケア", "Healthcare"}
+
+
+def monthly_trend(close: pd.Series, short: int = 9, long: int = 24) -> dict:
+    """確定月足で、24か月前より高いか（右肩上がり）と、月足9MA > 24MA（GC中）か。GCが直近何か月前に起きたか。"""
+    m = close.resample("ME").last().dropna()
+    last = close.index[-1]
+    if len(m) and last.normalize() < (last + pd.offsets.BMonthEnd(0)).normalize():
+        m = m.iloc[:-1]
+    if len(m) < long + 2:
+        return {"up_24m": None, "gc_on": None, "months_since_gc": None}
+    s, l = m.rolling(short).mean(), m.rolling(long).mean()
+    on = (s > l).dropna()
+    crosses = np.flatnonzero(on.values[1:] & ~on.values[:-1])
+    months_since = int(len(on) - 1 - (crosses[-1] + 1)) if len(crosses) else None
+    return {"up_24m": bool(m.iloc[-1] > m.iloc[-25]), "gc_on": bool(on.iloc[-1]), "months_since_gc": months_since}
+
+
+def buy_style(sector: str | None, div_yield: float | None, mtrend: dict, equity_negative: bool) -> str:
+    """乖離で拾ってよい / GC待ち / —（表示のみ）。"""
+    down = mtrend.get("up_24m") is False
+    if sector in GC_WAIT_SECTORS or (not (div_yield or 0) and down) or (down and equity_negative):
+        return "GC待ち"
+    if sector in DEFENSIVE_SECTORS or (mtrend.get("up_24m") and mtrend.get("gc_on")):
+        return "乖離で拾ってよい"
+    return "—"
+
+
+# ─── Z-5 上方乖離の見分け ───────────────────────────────
+def upside_type(dev: float, upper1: float, months_since_gc: int | None, drop_from_ath: float,
+                pbr_percentile: float | None, div_yield: float | None, vt_yield: float) -> str:
+    """上方乖離（+1σ以上）の銘柄だけ: 上げはじめ / 高値追い注意 / —。"""
+    if dev < upper1:
+        return "—"
+    if months_since_gc is not None and months_since_gc <= 6 and drop_from_ath >= 30:
+        return "上げはじめ"
+    if pbr_percentile is not None and pbr_percentile >= 80 and (div_yield or 0) <= vt_yield:
+        return "高値追い注意"
+    return "—"
+
+
+def recession_signals(t10y2y: float | None, payems_change: float | None) -> dict:
+    """長短金利差の逆転（<0）と、雇用者数の前月比マイナス。両方なら警告。"""
+    inv = t10y2y is not None and t10y2y < 0
+    neg = payems_change is not None and payems_change < 0
+    return {"inverted": inv, "jobs_negative": neg, "both": bool(inv and neg)}
+
+
+def bond_yield_pct(tnx_close: float | None) -> float | None:
+    """^TNX を利回り（%）に。古い表記（42.5 = 4.25%）なら10で割る。"""
+    if tnx_close is None:
+        return None
+    return tnx_close / 10 if tnx_close > 20 else tnx_close
