@@ -268,7 +268,8 @@ def split_factor_since(ticker, as_of):
         return 1.0, []
     idx = _naive_index(splits)
     after = splits[idx > as_of]
-    after = after[after > 0]
+    # 0.8〜1.25倍はスピンオフ等の株価調整係数（例: HON 0.9535, SPGI 1.057）で、配当には当てはめない
+    after = after[(after > 0) & ((after <= 0.8) | (after >= 1.25))]
     if len(after) == 0:
         return 1.0, []
     factor = float(np.prod(after.values))
@@ -277,7 +278,7 @@ def split_factor_since(ticker, as_of):
 
 
 def ttm_dividends(ticker):
-    """yfinance配当履歴（分割調整済み）の直近1年合計。取得できなければ0"""
+    """yfinance配当履歴の直近1年合計。取得できない・期間内に分割がある場合は0"""
     try:
         divs = ticker.dividends
     except Exception:
@@ -287,7 +288,15 @@ def ttm_dividends(ticker):
     idx = _naive_index(divs)
     if idx[-1] < pd.Timestamp.now() - pd.Timedelta(days=450):
         return 0.0  # 1年以上配当がない
-    recent = divs[idx >= idx[-1] - pd.Timedelta(days=370)]
+    window_start = idx[-1] - pd.Timedelta(days=370)
+    # 期間内に株式分割があると、yfinanceの日本株配当は分割前後の金額が混ざるので比較しない
+    try:
+        splits = ticker.splits
+        if splits is not None and len(splits) > 0 and (_naive_index(splits) >= window_start).any():
+            return 0.0
+    except Exception:
+        pass
+    recent = divs[idx >= window_start]
     return float(recent.sum())
 
 
