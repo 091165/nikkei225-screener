@@ -1,0 +1,36 @@
+name: Long-term Logic Tests
+
+on:
+  push:
+    paths:
+      - "longterm/**"
+      - "tests/**"
+      - "config/**"
+      - "pytest.ini"
+      - ".github/workflows/tests.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest
+
+      - name: Unit tests
+        run: python -m pytest -v
+
+      - name: Real-data tests (Yahoo Finance)
+        env:
+          RUN_NETWORK_TESTS: "1"
+        run: python -m pytest -v -s -m network
