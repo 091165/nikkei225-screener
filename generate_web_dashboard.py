@@ -366,6 +366,7 @@ footer{{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font
   <a href="index.html" class="{jp_cls}">🇯🇵 日本株</a>
   <a href="us.html" class="{us_cls}">🇺🇸 米国株</a>
   <a href="longterm.html">📉 長期（暴落点）</a>
+  <a href="holdings.html">💼 保有管理</a>
 </div>
 
 <header>

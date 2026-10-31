@@ -133,6 +133,7 @@ def main():
         "verdict_counts": counts,
         "stocks": sorted(rows, key=lambda r: (r["market"], r["ticker"])),
         "failed": [{"ticker": t, "error": e} for t, e in failed],
+        "holdings_config": cfg["holdings"],   # 保有管理画面（条件E・F）が同じしきい値を使うため
     }
     with open(os.path.join(args.out, "summary.json"), "w", encoding="utf-8") as fp:
         json.dump(_clean(summary), fp, ensure_ascii=False)
@@ -147,11 +148,12 @@ def main():
     }
     with open(os.path.join(args.out, "market.json"), "w", encoding="utf-8") as fp:
         json.dump(_clean(market), fp, ensure_ascii=False)
-    # 新タブのページ（静的HTML）を docs 直下にコピー
-    page_src = os.path.join(ROOT, "web", "longterm.html")
+    # 新タブのページ（web/ の静的ファイル）を docs 直下にコピー
     docs_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.out)))
-    if os.path.exists(page_src) and os.path.basename(os.path.dirname(os.path.abspath(args.out))) == "data":
-        shutil.copy(page_src, os.path.join(docs_dir, "longterm.html"))
+    if os.path.basename(os.path.dirname(os.path.abspath(args.out))) == "data":
+        web_dir = os.path.join(ROOT, "web")
+        for name in os.listdir(web_dir):
+            shutil.copy(os.path.join(web_dir, name), os.path.join(docs_dir, name))
 
     print(f"\n  long-term: {len(rows)} ok / {len(failed)} failed in {time.time() - t0:.0f}s")
     print(f"  breadth jp={market['jp']['breadth']} us={market['us']['breadth']}")

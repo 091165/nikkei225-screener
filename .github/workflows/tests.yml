@@ -7,6 +7,7 @@ on:
       - "tests/**"
       - "config/**"
       - "pytest.ini"
+      - "web/**"
       - ".github/workflows/tests.yml"
   pull_request:
   workflow_dispatch:
@@ -29,6 +30,9 @@ jobs:
 
       - name: Unit tests
         run: python -m pytest -v
+
+      - name: JavaScript tests (holdings logic)
+        run: node tests/js/holdings_logic.test.js
 
       - name: Real-data tests (Yahoo Finance)
         env:
