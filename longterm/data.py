@@ -18,3 +18,18 @@ def fetch_history(ticker: str) -> pd.DataFrame:
     df.index = df.index.normalize()
     df = df[~df.index.duplicated(keep="last")]
     return df.dropna(subset=["close"])
+
+
+def fetch_financials(ticker: str) -> dict:
+    """通期・四半期の損益計算書、通期のキャッシュフロー・貸借対照表を返す（取れないものは None）。"""
+    import yfinance as yf
+    t = yf.Ticker(ticker)
+    out = {}
+    for key, attr in [("income", "income_stmt"), ("quarterly_income", "quarterly_income_stmt"),
+                      ("cashflow", "cashflow"), ("balance", "balance_sheet")]:
+        try:
+            df = getattr(t, attr)
+            out[key] = df if df is not None and not df.empty else None
+        except Exception:
+            out[key] = None
+    return out

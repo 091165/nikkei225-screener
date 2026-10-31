@@ -61,3 +61,38 @@ def test_n225_minus7_detects_august_2024(n225):
     aug = [d for d in events if "2024-07-25" <= d <= "2024-08-15"]
     print("2024 summer events:", aug)
     assert aug, "2024年8月の急落が検出されていない"
+
+
+# ─── 個別銘柄（価格ベースの条件B・C）───────────────────
+def _stock_points(ticker, as_of, n225_df):
+    from longterm.crash import stock_crash_points
+    from longterm.indicators import ideal_deviation
+    cfg = load_config()
+    df = fetch_history(ticker).loc[:as_of]
+    dev = deviation(df["close"], 25)
+    ideal = ideal_deviation(dev, cfg)
+    n_dev = deviation(n225_df["close"].loc[:as_of], 25)
+    idx_pts = build_crash_points(n_dev, -10.0, "index", cfg, low=n225_df["low"], source="^N225")
+    pts = stock_crash_points(dev, df["low"], ideal["lower2"], idx_pts, cfg)
+    return cfg, df, pts
+
+
+@pytest.mark.parametrize("ticker", ["3038.T", "4776.T"])
+def test_growth_stocks_pass_b_and_c_on_2018_12_25(ticker, n225):
+    from longterm import conditions as C
+    cfg, df, pts = _stock_points(ticker, "2018-12-28", n225)
+    b = C.condition_b(df["close"].loc[:"2018-12-25"], cfg)
+    c = C.condition_c(pts, df["close"], cfg)
+    print(ticker, "B:", b, "\n  C:", c, "\n  points:", [(p.date, p.kind, p.low) for p in pts[-4:]])
+    assert any(p.date[:7] == "2018-12" for p in pts), "2018年12月の暴落点がない"
+    assert b["pass"], "2018-12-25 時点で6か月以内に上場来高値を更新していない"
+    assert c["pass"], "安値を切り上げていない"
+
+
+def test_tokai_carbon_2020_lower_lows(n225):
+    from longterm import conditions as C
+    cfg, df, pts = _stock_points("5301.T", "2020-04-30", n225)
+    c = C.condition_c(pts, df["close"], cfg)
+    print("5301.T C:", c, "\n  points:", [(p.date, p.kind, p.low) for p in pts[-4:]])
+    assert pts[-1].date[:7] in ("2020-02", "2020-03")
+    assert c["pass"] is False, "2020年の暴落点で安値を切り下げているはず"

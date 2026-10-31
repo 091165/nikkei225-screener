@@ -41,3 +41,26 @@ legacy_lower_band:
   lookback_years: 10        # 旧方式の下限: 過去何年の乖離率で数えるか
   min_touches: 10           # 独立したタッチ回数がこの範囲になる乖離率を探す
   max_touches: 20
+
+condition_b:                # 上昇トレンド（上場来高値の更新）
+  months: 6                 # 評価日からさかのぼって何か月以内に上場来高値を更新していれば合格
+  old_ath_years: 8          # 上場来高値がこれより古ければ「別相場」とみなし、直近N年高値で代用
+  fallback_high_years: 5
+
+condition_c:                # 暴落点ごとの安値切り上げ
+  rising_streak_strong: 2   # 直近の暴落点で安値が何回連続で切り上がっていれば「強い」とみなすか（3回の暴落点 = 2回の切り上げ）
+
+condition_d:                # 業績
+  min_annual_periods: 3     # 通期で最低何期分のデータが必要か
+  growth_stock_pct: 20.0    # 売上高・純利益の前年比がともにこれ以上なら成長株フラグ
+  aux_in_verdict: false     # 補助チェック（営業CF・CF乖離・自己資本比率・営業利益率）を合否に入れるか
+  ocf_to_op_income_range: [0.5, 2.0]   # 営業CF ÷ 営業利益 がこの範囲なら「大きく離れていない」
+  equity_ratio_min: 60.0
+  op_margin_min: 20.0
+
+signals:
+  monthly_ma: [6, 12, 24]   # 月足パーフェクトオーダーに使う移動平均（か月）
+  bottoming_days: 5         # 下げ止まり: 直近N日で安値を更新していない、または5日線が上向きに転じた
+  income:
+    yield_jp: 4.0
+    yield_us: 6.0

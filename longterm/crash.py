@@ -71,38 +71,81 @@ def severity_label(min_dev: float, levels: dict | None) -> str | None:
     return label
 
 
+def episode_point(dev: pd.Series, d: pd.Timestamp, kind: str, threshold: float, cfg: dict,
+                  low: pd.Series | None = None, severity_levels: dict | None = None,
+                  source: str | None = None) -> CrashPoint:
+    """暴落点 d のエピソード（安値・最小乖離率・戻り日）を dev / low から計算する。"""
+    seg_dev, seg_low, end, recovered = _episode(dev, low, d, cfg["crash_point"].get("episode_max_days", 60))
+    min_dev_date = seg_dev.idxmin()
+    if seg_low is not None and len(seg_low) > 0:
+        low_date = seg_low.idxmin()
+        low_val = float(seg_low.loc[low_date])
+        low_date_s = low_date.strftime("%Y-%m-%d")
+    else:
+        low_val, low_date_s = None, None
+    min_dev = float(seg_dev.loc[min_dev_date])
+    return CrashPoint(
+        date=d.strftime("%Y-%m-%d"),
+        kind=kind,
+        threshold=float(threshold),
+        deviation=float(dev.loc[d]),
+        min_deviation=min_dev,
+        min_deviation_date=min_dev_date.strftime("%Y-%m-%d"),
+        low=low_val,
+        low_date=low_date_s,
+        episode_end=end.strftime("%Y-%m-%d"),
+        recovered=recovered,
+        severity=severity_label(min_dev, severity_levels),
+        source=source,
+    )
+
+
 def build_crash_points(dev: pd.Series, threshold: float, kind: str, cfg: dict,
                        low: pd.Series | None = None, severity_levels: dict | None = None,
                        source: str | None = None) -> list[CrashPoint]:
     """乖離率系列から暴落点を検出し、エピソード（安値・最小乖離率など）を付けて返す。"""
-    ccfg = cfg["crash_point"]
-    dates = detect_touch_dates(dev, threshold, ccfg.get("reset_months", 3))
-    points = []
-    for d in dates:
-        seg_dev, seg_low, end, recovered = _episode(dev, low, d, ccfg.get("episode_max_days", 60))
-        min_dev_date = seg_dev.idxmin()
-        if seg_low is not None and len(seg_low) > 0:
-            low_date = seg_low.idxmin()
-            low_val = float(seg_low.loc[low_date])
-            low_date_s = low_date.strftime("%Y-%m-%d")
-        else:
-            low_val, low_date_s = None, None
-        min_dev = float(seg_dev.loc[min_dev_date])
-        points.append(CrashPoint(
-            date=d.strftime("%Y-%m-%d"),
-            kind=kind,
-            threshold=float(threshold),
-            deviation=float(dev.loc[d]),
-            min_deviation=min_dev,
-            min_deviation_date=min_dev_date.strftime("%Y-%m-%d"),
-            low=low_val,
-            low_date=low_date_s,
-            episode_end=end.strftime("%Y-%m-%d"),
-            recovered=recovered,
-            severity=severity_label(min_dev, severity_levels),
-            source=source,
-        ))
-    return points
+    dates = detect_touch_dates(dev, threshold, cfg["crash_point"].get("reset_months", 3))
+    return [episode_point(dev, d, kind, threshold, cfg, low, severity_levels, source) for d in dates]
+
+
+def stock_crash_points(dev: pd.Series, low: pd.Series, individual_threshold: float | None,
+                       index_points: list[CrashPoint], cfg: dict) -> list[CrashPoint]:
+    """1銘柄の暴落点（指数暴落点と個別暴落点の和集合）を時系列で返す。
+
+    - 個別暴落点: その銘柄の乖離率が individual_threshold（理想乖離 -2σ 相当）に初めてタッチした日
+    - 指数暴落点: 指数側で検出した日（その日以降の最初の営業日）。安値・乖離率はその銘柄の値で計算
+    - エピソードが重なる暴落点は1つにまとめる（早い日を採用。種類が違えば kind="both"、安値は低い方）
+    """
+    pts: list[CrashPoint] = []
+    if individual_threshold is not None:
+        pts += build_crash_points(dev, individual_threshold, "individual", cfg, low=low)
+    for ip in index_points:
+        pos = dev.index.searchsorted(pd.Timestamp(ip.date))
+        if pos >= len(dev):
+            continue
+        d = dev.index[pos]
+        if (d - pd.Timestamp(ip.date)).days > 7:   # その時期に上場していない等
+            continue
+        pts.append(episode_point(dev, d, "index", ip.threshold, cfg, low, source=ip.source))
+    pts.sort(key=lambda p: p.date)
+
+    merged: list[CrashPoint] = []
+    for p in pts:
+        if merged and p.date <= merged[-1].episode_end:
+            m = merged[-1]
+            if p.kind != m.kind:
+                m.kind = "both"
+            if p.source and p.source not in (m.source or ""):
+                m.source = f"{m.source},{p.source}" if m.source else p.source
+            if p.low is not None and (m.low is None or p.low < m.low):
+                m.low, m.low_date = p.low, p.low_date
+            if p.min_deviation < m.min_deviation:
+                m.min_deviation, m.min_deviation_date = p.min_deviation, p.min_deviation_date
+            if p.episode_end > m.episode_end:
+                m.episode_end, m.recovered = p.episode_end, p.recovered
+            continue
+        merged.append(p)
+    return merged
 
 
 def index_threshold(dev: pd.Series, ideal: dict | None, icfg: dict) -> float:
