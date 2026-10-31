@@ -184,7 +184,7 @@ def backtest_stock(ticker: str, name: str, df: pd.DataFrame, fin: dict | None, i
         po = C.monthly_perfect_order(close_d, cfg)
         d_status = "未判定" if dd["pass"] is None else ("合格" if dd["pass"] else "不合格")
         enter = bool(b["pass"] and c["pass"] and dd["pass"] is not False)
-        strong = bool(enter and (rs.get("pass") or po.get("pass")))
+        strong = bool(enter and (rs.get("pass") or c.get("strong")))
         reason = []
         if not b["pass"]:
             reason.append(f"B不合格（高値から{b['days_since_high']}日）")

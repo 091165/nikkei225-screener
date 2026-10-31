@@ -183,15 +183,19 @@ def test_stock_crash_points_merges_overlapping():
     (True, True, True, False, True, "weak_fundamentals"),
     (True, True, True, None, True, "insufficient"),
     ("individual", True, True, True, True, "buy"),   # 個別要因の暴落点では相対的な強さを数えない
+    ("streak", True, True, True, False, "strong_buy"),  # 安値の連続切り上げ（2回以上）でも「強」
 ])
 def test_verdict(a, b, c, d, rs, expected):
-    if a == "individual":
+    streak = 2 if a == "streak" else 1
+    if a in ("individual", "streak"):
         A = {"pass": True, "a1_index": False, "a2_individual": True, "date": "2024-08-05"}
     else:
         A = {"pass": a, "a1_index": a, "a2_individual": False, "date": "2024-08-05"}
     B = {"pass": b, "exception": False, "high_date": "2024-07-11", "days_since_high": 25}
-    Cc = {"pass": c, "prev_date": "2024-04-19", "prev_low": 100.0, "latest_date": "2024-08-05", "latest_low": 120.0}
+    Cc = {"pass": c, "prev_date": "2024-04-19", "prev_low": 100.0, "latest_date": "2024-08-05", "latest_low": 120.0,
+          "strength_streak": streak, "strong": streak >= 2}
     D = {"pass": d, "revenue_streak": 3, "net_income_streak": 3, "reason": None}
-    v = C.verdict(A, B, Cc, D, {"pass": rs}, {"pass": False})
+    RS = {"pass": rs, "stock_dev": -5.0, "index_dev": -12.0, "date": "2024-08-05"}
+    v = C.verdict(A, B, Cc, D, RS, {"pass": True})   # 月足POは「強」の判定に使わない
     assert v["code"] == expected
-    assert len(v["reasons"]) == 4
+    assert len(v["reasons"]) >= 4

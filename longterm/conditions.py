@@ -304,6 +304,12 @@ def verdict(a: dict, b: dict, c: dict, d: dict, rs: dict, po: dict) -> dict:
                        f" 業績: 売上{d['revenue_streak']}期・純利益{d['net_income_streak']}期連続増加"
                        + (f"（{d['reason']}）" if d.get("reason") else ""))
 
+    if a["pass"] and a.get("a1_index") and rs.get("pass") is not None:
+        reasons.append(("✔" if rs["pass"] else "－") +
+                       f" 相対的な強さ: 個別 {rs['stock_dev']:.1f}% / 指数 {rs['index_dev']:.1f}%（{rs['date']}）")
+    if c.get("strength_streak"):
+        reasons.append(f"{'✔' if c.get('strong') else '－'} 安値の連続切り上げ {c['strength_streak']}回")
+
     if b["pass"] is False or c["pass"] is False:
         code = "skip"
     elif c["pass"] is None or d["pass"] is None:
@@ -311,8 +317,9 @@ def verdict(a: dict, b: dict, c: dict, d: dict, rs: dict, po: dict) -> dict:
     elif d["pass"] is False:
         code = "weak_fundamentals"
     elif a["pass"]:
-        # 相対的な強さは「指数暴落点の日」の比較なので、指数要因の暴落点のときだけ数える
-        strong = bool((rs.get("pass") and a.get("a1_index")) or po.get("pass"))
+        # 強: 指数要因の暴落点で相対的に強い（個別の下げが浅い）、または暴落点ごとの安値が連続して切り上がっている
+        # （月足パーフェクトオーダーは条件Bの銘柄ならほぼ満たすので、強さの判定には使わず表示のみ）
+        strong = bool((rs.get("pass") and a.get("a1_index")) or c.get("strong"))
         code = "strong_buy" if strong else "buy"
     else:
         code = "watch"
