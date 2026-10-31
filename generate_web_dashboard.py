@@ -212,7 +212,7 @@ def generate_html(df, today, page_config):
 
     # Filter to this page's markets
     page_df = df[df["market"].isin(markets)].copy()
-    page_df.reset_index(drop=True, inplace=True)
+    page_df = page_df.reset_index(drop=True)
 
     # 統計
     n_strong = len(page_df[page_df["zone"]=="STRONG BUY"])
@@ -506,7 +506,7 @@ def main():
             "配当@-2σ%": "div_at_2s",
             "標準偏差": "std", "統計日数": "stat_days",
         }
-        df.rename(columns=col_map, inplace=True)
+        df = df.rename(columns=col_map)
     else:
         print("  [ERROR] No data files found")
         return
@@ -524,8 +524,7 @@ def main():
             df[col] = default
         df[col] = df[col].fillna(default)
     df["buy_score"] = df["buy_score"].astype(int)
-    df.sort_values("dist_to_2s", ascending=True, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    df = df.sort_values("dist_to_2s", ascending=True).reset_index(drop=True)
 
     # ===== 日本株ページ (index.html) =====
     jp_config = {

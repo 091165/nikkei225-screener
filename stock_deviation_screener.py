@@ -398,7 +398,7 @@ def calc_deviation(ticker_str, name, market):
         df.columns = ["close"]
         df["sma25"] = df["close"].rolling(SMA_PERIOD).mean()
         df["deviation"] = ((df["close"] - df["sma25"]) / df["sma25"]) * 100
-        df.dropna(inplace=True)
+        df = df.dropna()
 
         if len(df) < 200:
             return None
@@ -804,8 +804,7 @@ def main():
     # DataFrameに変換・ソート
     df = pd.DataFrame(results)
 
-    df.sort_values("dist_to_2s", ascending=True, inplace=True)
-    df.reset_index(drop=True, inplace=True)
+    df = df.sort_values("dist_to_2s", ascending=True).reset_index(drop=True)
 
     # ========== Excel出力 ==========
     print("\n  Generating Excel...")
