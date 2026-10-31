@@ -168,6 +168,32 @@ def _table(records, tid):
     </tr></thead><tbody>{rows}</tbody></table></div>"""
 
 
+def _market_line(region):
+    """長期（暴落点）タブの地合いを1行で（market.json がある場合だけ）。"""
+    path = os.path.join(PAGES_DIR, "data", "longterm", "market.json")
+    if not os.path.exists(path):
+        return ""
+    try:
+        import json
+        with open(path, encoding="utf-8") as f:
+            m = json.load(f).get(region) or {}
+        if region == "jp":
+            ix = (m.get("indices") or [{}])[0]
+            b = m.get("breadth") or {}
+            parts = [f"日経 25日乖離 {ix.get('deviation', 0):.1f}%（{(m.get('index_stage') or {}).get('label', '—')}）",
+                     f"下方乖離 {b.get('below_ma_pct', 0):.0f}%（{(b.get('stage') or {}).get('label', '—')}）",
+                     m.get("month_tendency") or ""]
+        else:
+            vix = m.get("vix") or {}
+            ix = (m.get("indices") or [{}])[0]
+            parts = [f"S&P500 25日乖離 {ix.get('deviation', 0):.1f}%", f"VIX {vix.get('value', 0):.1f}（参考）" if vix else ""]
+        text = "　／　".join(p for p in parts if p)
+        return (f'<div style="font-size:0.75rem;margin:0.6rem 0;padding:0.5rem 0.7rem;background:var(--s1);border:1px solid var(--bd);'
+                f'border-radius:6px">地合い：{text}　<a href="longterm.html" style="color:var(--ac)">長期タブで詳しく →</a></div>')
+    except Exception:
+        return ""
+
+
 def generate_html(df, today, page_config):
     """
     page_config = {
@@ -378,6 +404,7 @@ footer{{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font
 </header>
 
 <div class="wrap">
+{_market_line(nav_active)}
 
   <div class="stats">
     <div class="st"><div class="n" style="color:var(--red)">{n_strong}</div><div class="l">強い買い</div></div>

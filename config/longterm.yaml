@@ -97,3 +97,57 @@ swing:                      # 別戦略（長期ロジックとは混ぜない�
   sma: 5
   entry_dev: -5.0           # 5日線からの乖離率がこれ以下で買い
   hold_days: 5              # この営業日数後の終値で売り
+
+screens:                    # 追加の判定（地合い・配当格付け・下げ止まり など）
+  breadth:                  # 日経225で25日線より下の銘柄の割合（%）
+    rest_max: 50            # これ以下: 逆張りの買いは休み
+    partial_max: 70         # これ以下: 分けて買う / 超: 全体の買い場
+    adr_hot: 120            # 25日騰落レシオ: これ以上は過熱
+    adr_cold: 70            # これ以下は売られすぎ
+  index_stage:              # 日経平均の25日乖離率の段階（%）
+    buy: -7.0
+    deep: -10.0
+    historic: -20.0
+  month_tendency:
+    weak: [7, 8, 9, 10]
+    strong: [11, 12, 1, 2, 3, 4]
+  bottoming:
+    lookback_days: 20
+    recent_days: 5
+    flat_tolerance: 0.03    # 最安値からこの範囲の谷を「同じ下辺」とみなす
+    wick_ratio: 2.0         # 下ヒゲが実体の何倍以上か
+  support:
+    years: 2
+    window: 10              # 前後この営業日数で最安の日を「谷」とする
+    tolerance: 0.02
+    overlap_with_lower2: 0.03   # -2σの株価と水平サポートがこの範囲で重なれば「根拠が2つ」
+  dividend_grade:           # 日本株の配当格付け
+    min_yield: 4.0
+    vt_yield: 2.0           # 全世界株（VT）の利回りの目安。これ以下は格付けなし
+    min_market_cap: 100000000000   # 1000億円
+    min_consec_years: 3
+    payout_max: 100.0       # 配当性向がこれを超えたら警告
+    payout_jump_pt: 20.0    # 前期比でこのポイント以上上がったら警告
+  monthly:
+    bear_streak_min: 3      # 陰線がこの本数以上続いたあとの初陽線
+    bull_streak_min: 3      # 連続陽線（順張り）
+    gc_short: 9
+    gc_long: 24
+
+madakabu:                   # 別スコア「まだ株格付け」（既存の買いスコアとは別。合計を100に按分）
+  weights:
+    div_grade: {A: 30, B: 18, C: 8}
+    monthly_shape: 20       # 月足の陰線3本以上→初陽転、または利益剰余金が増加
+    lower2_hit: 20          # 日足の下方乖離: -2σ到達
+    lower2_near: 12         #   -2σまで3%以内
+    below_zero: 5           #   乖離率0以下
+    bottoming: 10           # 下げ止まり確認
+    crash_held: 5           # 暴落点で崩れず
+    sector: 5               # セクター内で唯一安い / 同業比PBR割安 / PBRが過去比で低い
+    yen_strong: 5           # 円高タグ（円高局面のときのみ）
+    bull_streak: 5          # 月足連続陽線3本以上
+    contrarian: 10          # 逆張り型
+  penalties:
+    payout_jump: -10        # 配当性向の急上昇
+    below_vt: -10           # 利回り2%以下
+    knife: -5               # -2σ以下なのに下げ止まり未確認

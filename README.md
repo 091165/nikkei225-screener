@@ -143,3 +143,18 @@ CHART_YEARS = 3   # 直近3年表示に変更
 - バックテスト：`python scripts/backtest_longterm.py`（結果は `docs/backtest/`）。スイング用の別戦略は `python scripts/backtest_swing.py`。
 - テスト：`python -m pytest`（実データのテストは `RUN_NETWORK_TESTS=1` のときだけ実行）、`node tests/js/holdings_logic.test.js`。
 - 現行ロジックの説明：`docs/CURRENT_LOGIC.md`。
+
+### 長期タブの追加機能（地合い・配当格付け・まだ株格付け など）
+
+- **地合い**：下方乖離の銘柄の割合とその段階（休み／分けて買う／全体の買い場）、-2σ以下の銘柄数、25日騰落レシオ、日経平均の乖離の段階、今月の傾向、ドル円の向き、権利確定前後の注意を表示します。推移は `output/breadth_history.csv` に毎日記録されます。
+- **配当格付け（A/B/C/—）**：利回り・時価総額・連続増配・利益剰余金の推移で付けます。利回りが2%（VTの目安）以下なら「—」、配当性向が急に上がっていれば警告を出します。
+- **まだ株格付け（0〜100）**：配当格付け・月足の形・下方乖離・下げ止まりなどを合計した別スコアです。既存の買いスコアと並べて見られ、並べ替えも切り替えられます。配点は `config/longterm.yaml` の `madakabu` で変更できます。比較の検証は `python scripts/validate_scores.py`（`output/longterm_history.csv` が溜まってから）で行います。
+- **シグナルのタグ**：下げ止まり未確認、暴落点で崩れず、水平線との重なり、逆張り型／順張り押し目、セクター内で唯一安い、上げ止まり、黒字転換、配当貴族の買い場 など。
+- **暴落時の均等買い計算**：日経平均の乖離が -10% 以下の日は自動で開きます。
+- **手動CSV**（空でも動きます）：
+  - `jp_domestic_ratio.csv`：国内売上比率。円高・内需タグに使います
+  - `peer_groups.csv`：同業グループ
+  - `jp_us_pairs.csv`：日米の同業ペア
+  - `watchlist.csv`：欲しい銘柄
+  - `jp_dividend_history.csv`：日本株の年間配当の推移
+- 研究用：`python research/pair_swing_backtest.py`（下方首位買い×上方首位売りの検証。ページには出しません）

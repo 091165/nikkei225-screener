@@ -9,6 +9,7 @@ from . import conditions as C
 from .crash import build_crash_points, index_threshold, legacy_lower_band, stock_crash_points
 from .indicators import deviation, ideal_deviation
 from .market import monthly_seasonality
+from . import enrich
 
 
 def _clean(obj):
@@ -72,6 +73,7 @@ def evaluate_index(ticker: str, df: pd.DataFrame, icfg: dict, cfg: dict, as_of=N
         "as_of": df.index[-1].strftime("%Y-%m-%d"),
         "close": float(df["close"].iloc[-1]),
         "deviation": float(dev.iloc[-1]),
+        "close_series": df["close"],
     }
 
 
@@ -103,7 +105,9 @@ def evaluate_stock(ticker: str, name: str, market: str, df: pd.DataFrame, fin: d
     main_index = indices[0] if indices else None
     rs = C.relative_strength(dev, main_index["dev"], main_index["points"]) if main_index else {"pass": None}
     po = C.monthly_perfect_order(close, cfg)
-    bot = C.bottoming(df["low"], close, cfg)
+    sc = enrich.per_stock(df, dev, ideal, fin, extra, cfg, pts, d,
+                          main_index["close_series"] if main_index else None, ticker.endswith(".T"), market)
+    bot = sc["bottoming"]      # 下げ止まり（直近20日安値の更新停止 ＋ 下辺水平 または 下ヒゲ）
     oversold = bool(dev.iloc[-1] <= ideal["lower2"])
     v = C.verdict(a, b, c, d, rs, po)
 
@@ -136,6 +140,7 @@ def evaluate_stock(ticker: str, name: str, market: str, df: pd.DataFrame, fin: d
         "histogram": histogram(dev),
         "seasonality": monthly_seasonality(close, years=20),
         "dev_at_last_index_crash": None,
+        "screens": sc,
     }
     if main_index and main_index["points"]:
         d_last = pd.Timestamp(main_index["points"][-1].date)
@@ -148,8 +153,8 @@ def evaluate_stock(ticker: str, name: str, market: str, df: pd.DataFrame, fin: d
     if out["legacy_lower_band"]:
         out["legacy_lower_band"]["diff_from_lower2"] = out["legacy_lower_band"]["threshold"] - ideal["lower2"]
     if extra:
-        out["extra"] = extra
-    return _clean(out)
+        out["extra"] = {k: v for k, v in extra.items() if k != "div_history"}
+    return out          # JSON 化（_clean）は全銘柄の後処理のあと
 
 
 def summary_row(r: dict) -> dict:
@@ -172,4 +177,22 @@ def summary_row(r: dict) -> dict:
         "lower2": r["ideal"]["lower2"],
         "dev_at_last_index_crash": (r.get("dev_at_last_index_crash") or {}).get("stock_dev"),
         "bottoming": r["signals"]["bottoming"].get("pass"),
+        "buy_score": (r.get("extra") or {}).get("buy_score"),
+        "madakabu": sc_get(r, "madakabu", {}).get("score"),
+        "div_grade": sc_get(r, "dividend", {}).get("grade"),
+        "below_vt": sc_get(r, "dividend", {}).get("below_vt"),
+        "dip_type": sc_get(r, "dip", {}).get("type"),
+        "drop_from_ath": sc_get(r, "dip", {}).get("drop_from_ath"),
+        "band_label": sc_get(r, "band_label"),
+        "pbr": (r.get("extra") or {}).get("pbr"),
+        "pbr_percentile": sc_get(r, "pbr_percentile"),
+        "crash_held": sc_get(r, "crash_strength", {}).get("held"),
+        "aristocrat": sc_get(r, "aristocrat"),
+        "watchlist": sc_get(r, "watchlist"),
+        "tags": sc_get(r, "tags", []),
     }
+
+
+def sc_get(r, key, default=None):
+    v = (r.get("screens") or {}).get(key)
+    return default if v is None else v
