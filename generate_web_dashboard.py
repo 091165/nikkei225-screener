@@ -321,6 +321,9 @@ header h1{{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:7
 .sec2{{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin:1.5rem 0 0.6rem}}
 .search input{{padding:0.45rem 0.8rem;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:0.75rem;outline:none;width:260px}}
 .search input:focus{{border-color:var(--ac)}}
+.colbtn{{margin-left:0.5rem;padding:0.4rem 0.7rem;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:0.7rem;cursor:pointer}}
+body.cols-min .hide-m{{display:none!important}}
+body.cols-all .hide-m{{display:table-cell!important}}
 .search input::placeholder{{color:var(--dim)}}
 .tabs{{display:flex;gap:0.4rem;flex-wrap:wrap}}
 .tb{{padding:0.4rem 0.8rem;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:0.7rem;cursor:pointer;transition:all 0.15s}}
@@ -437,7 +440,7 @@ footer{{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font
   <div class="sec2">
     <div class="sec" style="margin:0"><span class="dot" style="background:var(--grn)"></span> 全銘柄データ</div>
     <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
-      <div class="search"><input type="text" id="si" placeholder="コード・銘柄名で検索..." oninput="doFilter()"></div>
+      <div class="search"><input type="text" id="si" placeholder="コード・銘柄名で検索..." oninput="doFilter()"><button type="button" class="colbtn" id="colbtn" onclick="toggleCols()">主要列だけ表示</button></div>
       {tabs_html}
     </div>
   </div>
@@ -449,6 +452,26 @@ footer{{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font
 <footer>理想乖離ダッシュボード &middot; GitHub Actionsで毎営業日自動更新<br>データ: Yahoo Finance &middot; 投資判断は自己責任で行ってください</footer>
 
 <script>
+// 列の表示切替（主要列だけ／全列）。選んだ状態はこのブラウザに記憶
+function _isMobile(){{return window.matchMedia('(max-width:600px)').matches}}
+function _applyCols(mode){{
+  document.body.classList.toggle('cols-min',mode==='min');
+  document.body.classList.toggle('cols-all',mode==='all');
+  const showingAll = mode ? mode==='all' : !_isMobile();
+  const b=document.getElementById('colbtn');
+  if(b) b.textContent = showingAll ? '主要列だけ表示' : '全列を表示';
+}}
+function toggleCols(){{
+  const showingAll = document.body.classList.contains('cols-all') ||
+    (!document.body.classList.contains('cols-min') && !_isMobile());
+  const mode = showingAll ? 'min' : 'all';
+  try{{localStorage.setItem('cols_mode',mode)}}catch(e){{}}
+  _applyCols(mode);
+}}
+document.addEventListener('DOMContentLoaded',function(){{
+  let m=null; try{{m=localStorage.getItem('cols_mode')}}catch(e){{}}
+  _applyCols(m);
+}});
 function switchTab(id,btn){{
   document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));

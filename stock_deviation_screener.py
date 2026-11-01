@@ -307,6 +307,7 @@ def calc_deviation(ticker_str, name, market):
         df = ticker.history(period="max")
         if df.empty or len(df) < SMA_PERIOD + 100:
             return None
+        df_raw = df.copy()  # 追加シグナル用（2回目の取得を省く）
 
         # 配当情報取得
         # 日米共通: CSVを最優先。CSVにない米国株のみyfinanceフォールバック
@@ -438,7 +439,7 @@ def calc_deviation(ticker_str, name, market):
 
         # ========== 追加シグナル ==========
         # 日足全データ（乖離率計算前のdfは加工済みなので、元データを使う）
-        df_full = ticker.history(period="max")[["Close", "Open", "High", "Low"]].copy()
+        df_full = df_raw[["Close", "Open", "High", "Low"]].copy()
         df_full.columns = ["close", "open", "high", "low"]
 
         # ① 高配当フラグ（日本株4%超、米国株6%超）
