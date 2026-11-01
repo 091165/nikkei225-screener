@@ -110,6 +110,7 @@ _ROWS = {
     "net_income": ["Net Income", "Net Income Common Stockholders",
                    "Net Income From Continuing Operation Net Minority Interest"],
     "operating_income": ["Operating Income", "Total Operating Income As Reported"],
+    "pretax": ["Pretax Income"],
     "operating_cf": ["Operating Cash Flow", "Cash Flow From Continuing Operating Activities"],
     "equity": ["Stockholders Equity", "Common Stock Equity", "Total Equity Gross Minority Interest"],
     "total_assets": ["Total Assets"],

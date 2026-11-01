@@ -190,6 +190,13 @@ def summary_row(r: dict) -> dict:
         "aristocrat": sc_get(r, "aristocrat"),
         "watchlist": sc_get(r, "watchlist"),
         "tags": sc_get(r, "tags", []),
+        "pl_trend": sc_get(r, "fundamentals", {}).get("pl", {}).get("trend"),
+        "doe": sc_get(r, "fundamentals", {}).get("doe"),
+        "roa": sc_get(r, "fundamentals", {}).get("roa"),
+        "psr": sc_get(r, "fundamentals", {}).get("psr"),
+        "buy_style": sc_get(r, "buy_style", {}).get("style"),
+        "upside": sc_get(r, "upside"),
+        "bond_spread": sc_get(r, "bond_spread"),
     }
 
 

@@ -65,6 +65,45 @@ def per_stock(df: pd.DataFrame, dev: pd.Series, ideal: dict, fin: dict | None, e
     else:
         grade = {"grade": "—", "missing": [], "below_vt": (extra.get("div_yield") or 0) <= cfg["screens"]["dividend_grade"]["vt_yield"],
                  "payout_jump": jump}
+    # Z-1 業績の推移・DOE・ROA・PSR
+    inc, bal = fin.get("income"), fin.get("balance")
+    rev = statement_row(inc, "revenue")
+    ordinary = statement_row(inc, "pretax")
+    if ordinary.empty:
+        ordinary = statement_row(inc, "operating_income")
+    ni_s = statement_row(inc, "net_income")
+    pl = S.pl_trend(list(rev.values), list(ordinary.values), list(ni_s.values))
+    eq_s, ta_s = statement_row(bal, "equity"), statement_row(bal, "total_assets")
+    divp = statement_row(fin.get("cashflow"), "dividends_paid")
+    common = divp.index.intersection(eq_s.index)
+    doe_hist = S.doe_history(list(divp.loc[common].values), list(eq_s.loc[common].values))
+    equity_negative = bool(len(eq_s) and eq_s.iloc[-1] <= 0)
+    fcfg = cfg["fundamentals"]
+    doe_jump = S.doe_jumped(doe_hist, fcfg["doe_jump_pt"])
+    out["fundamentals"] = {
+        "pl": pl,
+        "revenue": [float(x) for x in rev.values][-4:], "ordinary": [float(x) for x in ordinary.values][-4:],
+        "net_income": [float(x) for x in ni_s.values][-4:],
+        "doe_history": [None if x is None else round(x, 2) for x in doe_hist][-5:],
+        "doe": None if equity_negative or not doe_hist else doe_hist[-1],
+        "doe_jumped": doe_jump,
+        "roa": S.ratio_pct(float(ni_s.iloc[-1]) if len(ni_s) else None, float(ta_s.iloc[-1]) if len(ta_s) else None),
+        "psr": (extra.get("market_cap") / float(rev.iloc[-1])) if extra.get("market_cap") and len(rev) and rev.iloc[-1] > 0 else None,
+        "equity_negative": equity_negative,
+    }
+    # 配当格付けA の追加条件（Z-1・Y-4）: 業績が上向き/まちまち、DOEが急上昇していない、直近10年で減配なし
+    if jp and grade["grade"] == "A":
+        extra_missing = []
+        if pl["trend"] not in ("up", "mixed"):
+            extra_missing.append("業績の推移が上向き/まちまち")
+        if doe_jump:
+            extra_missing.append("DOEが急上昇していない")
+        if div_hist:
+            years = sorted(div_hist)[-fcfg["dividend_cut_years"]:]
+            if any(div_hist[b_] < div_hist[a_] for a_, b_ in zip(years, years[1:])):
+                extra_missing.append(f"直近{fcfg['dividend_cut_years']}年で減配なし")
+        if extra_missing:
+            grade = {**grade, "grade": "B", "missing": grade["missing"] + extra_missing}
     out["dividend"] = {**grade, "re_trend": re_trend, "re_source": re_source,
                        "re_values": [float(x) for x in re_vals.values][-5:],
                        "payout_history": [round(x, 1) for x in payout if np.isfinite(x)], "growth": growth}
@@ -87,6 +126,17 @@ def per_stock(df: pd.DataFrame, dev: pd.Series, ideal: dict, fin: dict | None, e
                   "drop_from_ath": drop, "days_since_ath": days_ath, "ath_date": ath_date.strftime("%Y-%m-%d"),
                   "po_now": po["now"], "days_since_po": po["days_since"]}
 
+    # Z-2 買い方の型（表示のみ）
+    mtrend = S.monthly_trend(close)
+    style = S.buy_style(extra.get("sector"), extra.get("div_yield"), mtrend, out["fundamentals"]["equity_negative"])
+    notes = []
+    if out["dip"]["type"] == "逆張り型" and style == "GC待ち":
+        notes.append(f"逆張り型だが{extra.get('sector') or 'この銘柄'}のためGC待ち推奨")
+    if jp and (extra.get("div_yield") or 0) >= cfg["screens"]["dividend_grade"]["min_yield"] and at_lower2 \
+            and not out["support_meets_lower2"] and not bot.get("pass"):
+        notes.append("日本株の高配当は下値の支えになりにくい（下がったら損切りも考える）")
+    out["buy_style"] = {"style": style, "monthly": mtrend, "notes": notes}
+
     # X-2 -2σの幅（全銘柄の中での位置は cross_section で付ける）
     out["band_width"] = -ideal["lower2"]
 
@@ -98,6 +148,11 @@ def per_stock(df: pd.DataFrame, dev: pd.Series, ideal: dict, fin: dict | None, e
         out["pbr_percentile"] = (pbr_now - lo) / (hi - lo) * 100 if hi > lo else 50.0
     else:
         out["pbr_percentile"] = None
+
+    # Z-5 上方乖離の見分け
+    out["upside"] = S.upside_type(cur_dev, ideal["mean"] + ideal["std"], mtrend.get("months_since_gc"), drop,
+                                  out["pbr_percentile"], extra.get("div_yield"),
+                                  cfg["screens"]["dividend_grade"]["vt_yield"])
 
     # X-7 直近20日の対指数の強さ
     if index_close is not None and len(close) > 21:
@@ -181,6 +236,8 @@ def madakabu_score(sc: dict, row: dict, ctx: dict, cfg: dict) -> dict:
         minus.append(("利回り2%以下", pen["below_vt"]))
     if sc.get("knife"):
         minus.append(("-2σ以下で下げ止まり未確認", pen["knife"]))
+    if (sc.get("fundamentals") or {}).get("pl", {}).get("trend") == "down":
+        minus.append(("業績の推移が下降", pen.get("pl_down", -10)))
     score = max(0, min(100, round(raw + sum(p for _, p in minus))))
     return {"score": int(score), "plus": [[k, round(v * 100 / max_total, 1)] for k, v in parts], "minus": minus}
 
@@ -224,6 +281,20 @@ def tags(sc: dict, row: dict) -> list[str]:
         t.append(sc["yen_tag"])
     if sc.get("watchlist"):
         t.append("★ウォッチ")
+    bs = sc.get("buy_style") or {}
+    if bs.get("style") == "GC待ち":
+        t.append("GC待ち推奨")
+    elif bs.get("style") == "乖離で拾ってよい" and row["deviation"] <= row["lower2"]:
+        t.append("乖離で拾ってよい型")
+    for n in bs.get("notes", []):
+        if n.startswith("日本株の高配当"):
+            t.append("⚠ 高配当だけが根拠")
+    if sc.get("upside") == "上げはじめ":
+        t.append("↗上げはじめ（月足GC直後）")
+    elif sc.get("upside") == "高値追い注意":
+        t.append("⚠ 高値追い注意")
+    if sc.get("bond_note"):
+        t.append(sc["bond_note"])
     return t
 
 
@@ -280,6 +351,18 @@ def cross_section(results: list[dict], cfg: dict, ctx: dict) -> dict:
                 sc["pair"] = {"ticker": us["ticker"], "name": us["name"], "deviation": us["deviation"],
                               "at_lower2": us["deviation"] <= us["ideal"]["lower2"], "memo": pairs[r["ticker"]].get("memo")}
                 sc["pair_both_buy"] = bool(sc["pair"]["at_lower2"] and r["deviation"] <= r["ideal"]["lower2"])
+    # Z-4 米国株: 配当利回り − 10年債利回り
+    bond = ctx.get("bond_yield")
+    spread_min = cfg["macro"]["bond_spread_min"]
+    for r in results:
+        if r["ticker"].endswith(".T") or bond is None:
+            continue
+        y = (r.get("extra") or {}).get("div_yield")
+        if y:
+            sp = y - bond
+            r["screens"]["bond_spread"] = sp
+            if r["screens"].get("aristocrat") in ("配当貴族の買い場", "監視") and sp < spread_min:
+                r["screens"]["bond_note"] = "債券より妙味が小さい"
     for r in results:
         row = {"deviation": r["deviation"], "lower2": r["ideal"]["lower2"], "dist_to_lower2": r["dist_to_lower2"]}
         r["screens"]["madakabu"] = madakabu_score(r["screens"], row, ctx, cfg)
