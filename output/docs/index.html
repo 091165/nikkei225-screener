@@ -57,6 +57,9 @@ header h1{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:70
 .sec2{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin:1.5rem 0 0.6rem}
 .search input{padding:0.45rem 0.8rem;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:0.75rem;outline:none;width:260px}
 .search input:focus{border-color:var(--ac)}
+.colbtn{margin-left:0.5rem;padding:0.4rem 0.7rem;background:var(--s2);border:1px solid var(--bd);border-radius:6px;color:var(--tx);font-size:0.7rem;cursor:pointer}
+body.cols-min .hide-m{display:none!important}
+body.cols-all .hide-m{display:table-cell!important}
 .search input::placeholder{color:var(--dim)}
 .tabs{display:flex;gap:0.4rem;flex-wrap:wrap}
 .tb{padding:0.4rem 0.8rem;border:1px solid var(--bd);border-radius:5px;background:transparent;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:0.7rem;cursor:pointer;transition:all 0.15s}
@@ -293,7 +296,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
   <div class="sec2">
     <div class="sec" style="margin:0"><span class="dot" style="background:var(--grn)"></span> 全銘柄データ</div>
     <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
-      <div class="search"><input type="text" id="si" placeholder="コード・銘柄名で検索..." oninput="doFilter()"></div>
+      <div class="search"><input type="text" id="si" placeholder="コード・銘柄名で検索..." oninput="doFilter()"><button type="button" class="colbtn" id="colbtn" onclick="toggleCols()">主要列だけ表示</button></div>
       <div class="tabs"><button class="tb active" onclick="switchTab('all',this)">全て (225)</button>
         <button class="tb" onclick="switchTab('n225',this)">日経225 (225)</button>
 </div>
@@ -1817,28 +1820,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">65%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">42%</td>
-    </tr><tr class="" data-score="20" data-dist="8.81" data-div="2.84" data-dev="-3.665" data-consec="0" data-pbr="1.4" data-ath="23.8" data-rsi="39.3" data-per="18.8" data-roe="0" data-w52="45.0">
-      <td>76</td>
-      <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
-      <td class="sig-cell"><span class="dim">—</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>6113.T</b></td>
-      <td>アマダ <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>2,408</td>
-      <td class="neg">-3.7%</td>
-      <td class="">+8.8%</td>
-      <td class="">2.8%</td>
-      <td class="">—</td>
-      <td class="hot">1.4</td>
-      <td class="hide-m ">19</td>
-      <td class="hide-m ">—</td>
-      <td class="hide-m ">39</td>
-      <td class="hide-m">45%</td>
-      <td class="hide-m pos">増収増益</td>
-      <td class="hide-m">24%</td>
     </tr><tr class="" data-score="32" data-dist="8.81" data-div="3.59" data-dev="-4.967" data-consec="2" data-pbr="0.71" data-ath="29.6" data-rsi="35.8" data-per="17.2" data-roe="5.0" data-w52="34.8">
-      <td>77</td>
+      <td>76</td>
       <td><div class="sc s-l"><b>32</b><div class="sf" style="width:32%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -1857,6 +1840,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">35%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">30%</td>
+    </tr><tr class="" data-score="20" data-dist="8.81" data-div="2.84" data-dev="-3.665" data-consec="0" data-pbr="1.4" data-ath="23.8" data-rsi="39.3" data-per="18.8" data-roe="0" data-w52="45.0">
+      <td>77</td>
+      <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
+      <td class="sig-cell"><span class="dim">—</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>6113.T</b></td>
+      <td>アマダ <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>2,408</td>
+      <td class="neg">-3.7%</td>
+      <td class="">+8.8%</td>
+      <td class="">2.8%</td>
+      <td class="">—</td>
+      <td class="hot">1.4</td>
+      <td class="hide-m ">19</td>
+      <td class="hide-m ">—</td>
+      <td class="hide-m ">39</td>
+      <td class="hide-m">45%</td>
+      <td class="hide-m pos">増収増益</td>
+      <td class="hide-m">24%</td>
     </tr><tr class="" data-score="37" data-dist="8.82" data-div="3.01" data-dev="1.028" data-consec="3" data-pbr="1.18" data-ath="43.5" data-rsi="55.8" data-per="15.7" data-roe="7.1" data-w52="63.4">
       <td>78</td>
       <td><div class="sc s-l"><b>37</b><div class="sf" style="width:37%"></div></div></td>
@@ -1957,7 +1960,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">30%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">24%</td>
-    </tr><tr class="" data-score="20" data-dist="9.16" data-div="0.88" data-dev="-5.17" data-consec="7" data-pbr="2.86" data-ath="19.4" data-rsi="35.7" data-per="6.7" data-roe="14.5" data-w52="48.1">
+    </tr><tr class="" data-score="20" data-dist="9.16" data-div="0.88" data-dev="-5.17" data-consec="7" data-pbr="2.93" data-ath="19.4" data-rsi="35.7" data-per="6.7" data-roe="14.5" data-w52="48.1">
       <td>83</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -2137,28 +2140,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">51%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">19%</td>
-    </tr><tr class="" data-score="25" data-dist="9.88" data-div="2.38" data-dev="-0.195" data-consec="2" data-pbr="1.61" data-ath="4.7" data-rsi="49.3" data-per="22.0" data-roe="10.2" data-w52="71.9">
-      <td>92</td>
-      <td><div class="sc s-n"><b>25</b><div class="sf" style="width:25%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>1721.T</b></td>
-      <td>コムシスHD <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>5,558</td>
-      <td class="neg">-0.2%</td>
-      <td class="">+9.9%</td>
-      <td class="">2.4%</td>
-      <td class="">2</td>
-      <td class="">1.6</td>
-      <td class="hide-m ">22</td>
-      <td class="hide-m ">10%</td>
-      <td class="hide-m ">49</td>
-      <td class="hide-m">72%</td>
-      <td class="hide-m pos">増収増益</td>
-      <td class="hide-m">5%</td>
     </tr><tr class="" data-score="20" data-dist="9.88" data-div="1.2" data-dev="1.309" data-consec="3" data-pbr="2.09" data-ath="5.4" data-rsi="57.7" data-per="23.1" data-roe="13.4" data-w52="83.4">
-      <td>93</td>
+      <td>92</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-neutral">平常圏</span></td>
@@ -2175,6 +2158,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m ">13%</td>
       <td class="hide-m ">58</td>
       <td class="hide-m">83%</td>
+      <td class="hide-m pos">増収増益</td>
+      <td class="hide-m">5%</td>
+    </tr><tr class="" data-score="25" data-dist="9.88" data-div="2.38" data-dev="-0.195" data-consec="2" data-pbr="1.61" data-ath="4.7" data-rsi="49.3" data-per="22.0" data-roe="10.2" data-w52="71.9">
+      <td>93</td>
+      <td><div class="sc s-n"><b>25</b><div class="sf" style="width:25%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>1721.T</b></td>
+      <td>コムシスHD <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>5,558</td>
+      <td class="neg">-0.2%</td>
+      <td class="">+9.9%</td>
+      <td class="">2.4%</td>
+      <td class="">2</td>
+      <td class="">1.6</td>
+      <td class="hide-m ">22</td>
+      <td class="hide-m ">10%</td>
+      <td class="hide-m ">49</td>
+      <td class="hide-m">72%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">5%</td>
     </tr><tr class="" data-score="20" data-dist="9.97" data-div="2.75" data-dev="-0.655" data-consec="1" data-pbr="1.02" data-ath="14.5" data-rsi="54.9" data-per="16.0" data-roe="9.8" data-w52="59.7">
@@ -2357,28 +2360,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">77%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">8%</td>
-    </tr><tr class="" data-score="5" data-dist="10.73" data-div="2.2" data-dev="2.967" data-consec="5" data-pbr="1.21" data-ath="10.7" data-rsi="70.9" data-per="20.1" data-roe="6.9" data-w52="56.9">
-      <td>103</td>
-      <td><div class="sc s-n"><b>5</b><div class="sf" style="width:5%"></div></div></td>
-      <td class="sig-cell"><span class="dim">—</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>9532.T</b></td>
-      <td>大阪ガス <span class="mkt">日経225</span></td>
-      <td class="hide-m">公益</td>
-      <td>5,892</td>
-      <td class="pos">+3.0%</td>
-      <td class="">+10.7%</td>
-      <td class="">2.2%</td>
-      <td class="pos">5</td>
-      <td class="hot">1.2</td>
-      <td class="hide-m ">20</td>
-      <td class="hide-m ">7%</td>
-      <td class="hide-m hot">71</td>
-      <td class="hide-m">57%</td>
-      <td class="hide-m neg">減益</td>
-      <td class="hide-m">11%</td>
     </tr><tr class="" data-score="17" data-dist="10.73" data-div="3.69" data-dev="-2.776" data-consec="3" data-pbr="1.33" data-ath="7.7" data-rsi="44.6" data-per="17.3" data-roe="11.0" data-w52="72.1">
-      <td>104</td>
+      <td>103</td>
       <td><div class="sc s-n"><b>17</b><div class="sf" style="width:17%"></div></div></td>
       <td class="sig-cell"><span class="dim">—</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -2397,6 +2380,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">72%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">8%</td>
+    </tr><tr class="" data-score="5" data-dist="10.73" data-div="2.2" data-dev="2.967" data-consec="5" data-pbr="1.21" data-ath="10.7" data-rsi="70.9" data-per="20.1" data-roe="6.9" data-w52="56.9">
+      <td>104</td>
+      <td><div class="sc s-n"><b>5</b><div class="sf" style="width:5%"></div></div></td>
+      <td class="sig-cell"><span class="dim">—</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>9532.T</b></td>
+      <td>大阪ガス <span class="mkt">日経225</span></td>
+      <td class="hide-m">公益</td>
+      <td>5,892</td>
+      <td class="pos">+3.0%</td>
+      <td class="">+10.7%</td>
+      <td class="">2.2%</td>
+      <td class="pos">5</td>
+      <td class="hot">1.2</td>
+      <td class="hide-m ">20</td>
+      <td class="hide-m ">7%</td>
+      <td class="hide-m hot">71</td>
+      <td class="hide-m">57%</td>
+      <td class="hide-m neg">減益</td>
+      <td class="hide-m">11%</td>
     </tr><tr class="" data-score="17" data-dist="10.8" data-div="2.3" data-dev="3.004" data-consec="4" data-pbr="0.91" data-ath="23.9" data-rsi="69.0" data-per="12.9" data-roe="9.4" data-w52="60.7">
       <td>105</td>
       <td><div class="sc s-n"><b>17</b><div class="sf" style="width:17%"></div></div></td>
@@ -3337,7 +3340,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">44%</td>
       <td class="hide-m ">微増</td>
       <td class="hide-m">16%</td>
-    </tr><tr class="" data-score="32" data-dist="14.3" data-div="3.37" data-dev="-1.809" data-consec="2" data-pbr="0.97" data-ath="50.1" data-rsi="43.0" data-per="9.3" data-roe="0" data-w52="17.9">
+    </tr><tr class="" data-score="32" data-dist="14.3" data-div="3.37" data-dev="-1.809" data-consec="2" data-pbr="0.99" data-ath="50.1" data-rsi="43.0" data-per="9.3" data-roe="0" data-w52="17.9">
       <td>152</td>
       <td><div class="sc s-l"><b>32</b><div class="sf" style="width:32%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
@@ -3377,28 +3380,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">33%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">48%</td>
-    </tr><tr class="" data-score="15" data-dist="14.43" data-div="1.82" data-dev="4.384" data-consec="1" data-pbr="0.91" data-ath="29.1" data-rsi="65.5" data-per="6.2" data-roe="12.4" data-w52="55.1">
-      <td>154</td>
-      <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>9202.T</b></td>
-      <td>ANA HD <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>3,043</td>
-      <td class="pos">+4.4%</td>
-      <td class="">+14.4%</td>
-      <td class="">1.8%</td>
-      <td class="">1</td>
-      <td class="neg">0.9</td>
-      <td class="hide-m pos">6</td>
-      <td class="hide-m ">12%</td>
-      <td class="hide-m ">66</td>
-      <td class="hide-m">55%</td>
-      <td class="hide-m neg">減益</td>
-      <td class="hide-m">29%</td>
     </tr><tr class="" data-score="22" data-dist="14.43" data-div="3.07" data-dev="-3.078" data-consec="1" data-pbr="0.91" data-ath="36.3" data-rsi="30.9" data-per="19.5" data-roe="6.2" data-w52="37.7">
-      <td>155</td>
+      <td>154</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -3417,6 +3400,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">38%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">36%</td>
+    </tr><tr class="" data-score="15" data-dist="14.43" data-div="1.82" data-dev="4.384" data-consec="1" data-pbr="0.91" data-ath="29.1" data-rsi="65.5" data-per="6.2" data-roe="12.4" data-w52="55.1">
+      <td>155</td>
+      <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>9202.T</b></td>
+      <td>ANA HD <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>3,043</td>
+      <td class="pos">+4.4%</td>
+      <td class="">+14.4%</td>
+      <td class="">1.8%</td>
+      <td class="">1</td>
+      <td class="neg">0.9</td>
+      <td class="hide-m pos">6</td>
+      <td class="hide-m ">12%</td>
+      <td class="hide-m ">66</td>
+      <td class="hide-m">55%</td>
+      <td class="hide-m neg">減益</td>
+      <td class="hide-m">29%</td>
     </tr><tr class="" data-score="10" data-dist="14.5" data-div="1.19" data-dev="3.933" data-consec="1" data-pbr="8.62" data-ath="12.1" data-rsi="67.0" data-per="38.4" data-roe="26.5" data-w52="49.1">
       <td>156</td>
       <td><div class="sc s-n"><b>10</b><div class="sf" style="width:10%"></div></div></td>
@@ -3537,28 +3540,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">18%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">27%</td>
-    </tr><tr class="" data-score="27" data-dist="14.88" data-div="3.71" data-dev="-0.665" data-consec="5" data-pbr="0.63" data-ath="35.9" data-rsi="53.0" data-per="7.2" data-roe="5.7" data-w52="39.1">
-      <td>162</td>
-      <td><div class="sc s-n"><b>27</b><div class="sf" style="width:27%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>5406.T</b></td>
-      <td>神戸製鋼所 <span class="mkt">日経225</span></td>
-      <td class="hide-m">素材</td>
-      <td>2,000</td>
-      <td class="neg">-0.7%</td>
-      <td class="">+14.9%</td>
-      <td class="">3.7%</td>
-      <td class="pos">5</td>
-      <td class="neg">0.6</td>
-      <td class="hide-m pos">7</td>
-      <td class="hide-m ">6%</td>
-      <td class="hide-m ">53</td>
-      <td class="hide-m">39%</td>
-      <td class="hide-m ">—</td>
-      <td class="hide-m">36%</td>
     </tr><tr class="" data-score="10" data-dist="14.88" data-div="0.28" data-dev="-3.903" data-consec="2" data-pbr="21.98" data-ath="16.7" data-rsi="33.3" data-per="146.6" data-roe="65.4" data-w52="69.9">
-      <td>163</td>
+      <td>162</td>
       <td><div class="sc s-n"><b>10</b><div class="sf" style="width:10%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -3577,6 +3560,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">70%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">17%</td>
+    </tr><tr class="" data-score="27" data-dist="14.88" data-div="3.71" data-dev="-0.665" data-consec="5" data-pbr="0.63" data-ath="35.9" data-rsi="53.0" data-per="7.2" data-roe="5.7" data-w52="39.1">
+      <td>163</td>
+      <td><div class="sc s-n"><b>27</b><div class="sf" style="width:27%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>5406.T</b></td>
+      <td>神戸製鋼所 <span class="mkt">日経225</span></td>
+      <td class="hide-m">素材</td>
+      <td>2,000</td>
+      <td class="neg">-0.7%</td>
+      <td class="">+14.9%</td>
+      <td class="">3.7%</td>
+      <td class="pos">5</td>
+      <td class="neg">0.6</td>
+      <td class="hide-m pos">7</td>
+      <td class="hide-m ">6%</td>
+      <td class="hide-m ">53</td>
+      <td class="hide-m">39%</td>
+      <td class="hide-m ">—</td>
+      <td class="hide-m">36%</td>
     </tr><tr class="" data-score="20" data-dist="15.0" data-div="2.4" data-dev="1.145" data-consec="5" data-pbr="1.8" data-ath="20.0" data-rsi="64.4" data-per="15.9" data-roe="14.2" data-w52="46.7">
       <td>164</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
@@ -3877,7 +3880,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">91%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">32%</td>
-    </tr><tr class="" data-score="22" data-dist="16.19" data-div="3.6" data-dev="0.64" data-consec="3" data-pbr="1.17" data-ath="14.1" data-rsi="51.6" data-per="16.4" data-roe="11.5" data-w52="70.7">
+    </tr><tr class="" data-score="22" data-dist="16.19" data-div="3.6" data-dev="0.64" data-consec="3" data-pbr="1.14" data-ath="14.1" data-rsi="51.6" data-per="16.4" data-roe="11.5" data-w52="70.7">
       <td>179</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-ma">MA転換</span></td>
@@ -3890,7 +3893,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+16.2%</td>
       <td class="">3.6%</td>
       <td class="">3</td>
-      <td class="hot">1.2</td>
+      <td class="hot">1.1</td>
       <td class="hide-m ">16</td>
       <td class="hide-m ">12%</td>
       <td class="hide-m ">52</td>
@@ -4117,28 +4120,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">93%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">27%</td>
-    </tr><tr class="" data-score="42" data-dist="17.67" data-div="4.51" data-dev="2.091" data-consec="0" data-pbr="0.43" data-ath="64.5" data-rsi="66.9" data-per="5.6" data-roe="3.8" data-w52="29.0">
-      <td>191</td>
-      <td><div class="sc s-l"><b>42</b><div class="sf" style="width:42%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-div">高配当</span><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>5411.T</b></td>
-      <td>JFE HD <span class="mkt">日経225</span></td>
-      <td class="hide-m">素材</td>
-      <td>1,774</td>
-      <td class="pos">+2.1%</td>
-      <td class="">+17.7%</td>
-      <td class="pos">4.5%</td>
-      <td class="">—</td>
-      <td class="neg">0.4</td>
-      <td class="hide-m pos">6</td>
-      <td class="hide-m ">4%</td>
-      <td class="hide-m ">67</td>
-      <td class="hide-m">29%</td>
-      <td class="hide-m ">微増</td>
-      <td class="hide-m">64%</td>
     </tr><tr class="" data-score="22" data-dist="17.67" data-div="3.22" data-dev="8.169" data-consec="12" data-pbr="2.37" data-ath="1.6" data-rsi="81.1" data-per="33.9" data-roe="21.3" data-w52="86.5">
-      <td>192</td>
+      <td>191</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-neutral">平常圏</span></td>
@@ -4157,6 +4140,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">86%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">2%</td>
+    </tr><tr class="" data-score="42" data-dist="17.67" data-div="4.51" data-dev="2.091" data-consec="0" data-pbr="0.43" data-ath="64.5" data-rsi="66.9" data-per="5.6" data-roe="3.8" data-w52="29.0">
+      <td>192</td>
+      <td><div class="sc s-l"><b>42</b><div class="sf" style="width:42%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-div">高配当</span><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>5411.T</b></td>
+      <td>JFE HD <span class="mkt">日経225</span></td>
+      <td class="hide-m">素材</td>
+      <td>1,774</td>
+      <td class="pos">+2.1%</td>
+      <td class="">+17.7%</td>
+      <td class="pos">4.5%</td>
+      <td class="">—</td>
+      <td class="neg">0.4</td>
+      <td class="hide-m pos">6</td>
+      <td class="hide-m ">4%</td>
+      <td class="hide-m ">67</td>
+      <td class="hide-m">29%</td>
+      <td class="hide-m ">微増</td>
+      <td class="hide-m">64%</td>
     </tr><tr class="" data-score="20" data-dist="17.67" data-div="2.78" data-dev="6.471" data-consec="9" data-pbr="1.41" data-ath="34.8" data-rsi="81.1" data-per="17.8" data-roe="9.3" data-w52="44.2">
       <td>193</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
@@ -4537,7 +4540,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">52%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">20%</td>
-    </tr><tr class="" data-score="15" data-dist="21.62" data-div="0.48" data-dev="12.094" data-consec="0" data-pbr="5.12" data-ath="38.7" data-rsi="80.0" data-per="39.3" data-roe="12.4" data-w52="99.1">
+    </tr><tr class="" data-score="15" data-dist="21.62" data-div="0.48" data-dev="12.094" data-consec="0" data-pbr="5.0" data-ath="38.7" data-rsi="80.0" data-per="39.3" data-roe="12.4" data-w52="99.1">
       <td>212</td>
       <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -4550,7 +4553,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+21.6%</td>
       <td class="">0.5%</td>
       <td class="">—</td>
-      <td class="">5.1</td>
+      <td class="">5.0</td>
       <td class="hide-m ">39</td>
       <td class="hide-m ">12%</td>
       <td class="hide-m hot">80</td>
@@ -4677,7 +4680,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">92%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">1%</td>
-    </tr><tr class="" data-score="20" data-dist="25.12" data-div="0" data-dev="8.328" data-consec="0" data-pbr="2.56" data-ath="49.2" data-rsi="70.7" data-per="110.0" data-roe="38.5" data-w52="33.2">
+    </tr><tr class="" data-score="20" data-dist="25.12" data-div="0" data-dev="8.328" data-consec="0" data-pbr="2.07" data-ath="49.2" data-rsi="70.7" data-per="110.0" data-roe="38.5" data-w52="33.2">
       <td>219</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
@@ -4690,14 +4693,14 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+25.1%</td>
       <td class="">0.0%</td>
       <td class="">—</td>
-      <td class="">2.6</td>
+      <td class="">2.1</td>
       <td class="hide-m ">110</td>
       <td class="hide-m pos">38%</td>
       <td class="hide-m hot">71</td>
       <td class="hide-m">33%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">49%</td>
-    </tr><tr class="" data-score="20" data-dist="29.05" data-div="0" data-dev="-13.897" data-consec="0" data-pbr="15.77" data-ath="62.8" data-rsi="30.7" data-per="16.2" data-roe="87.1" data-w52="30.7">
+    </tr><tr class="" data-score="20" data-dist="29.05" data-div="0" data-dev="-13.897" data-consec="0" data-pbr="9.21" data-ath="62.8" data-rsi="30.7" data-per="16.2" data-roe="87.1" data-w52="30.7">
       <td>220</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -4710,7 +4713,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+29.1%</td>
       <td class="">0.0%</td>
       <td class="">—</td>
-      <td class="">15.8</td>
+      <td class="">9.2</td>
       <td class="hide-m ">16</td>
       <td class="hide-m pos">87%</td>
       <td class="hide-m ">31</td>
@@ -6335,28 +6338,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">65%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">42%</td>
-    </tr><tr class="" data-score="20" data-dist="8.81" data-div="2.84" data-dev="-3.665" data-consec="0" data-pbr="1.4" data-ath="23.8" data-rsi="39.3" data-per="18.8" data-roe="0" data-w52="45.0">
-      <td>76</td>
-      <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
-      <td class="sig-cell"><span class="dim">—</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>6113.T</b></td>
-      <td>アマダ <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>2,408</td>
-      <td class="neg">-3.7%</td>
-      <td class="">+8.8%</td>
-      <td class="">2.8%</td>
-      <td class="">—</td>
-      <td class="hot">1.4</td>
-      <td class="hide-m ">19</td>
-      <td class="hide-m ">—</td>
-      <td class="hide-m ">39</td>
-      <td class="hide-m">45%</td>
-      <td class="hide-m pos">増収増益</td>
-      <td class="hide-m">24%</td>
     </tr><tr class="" data-score="32" data-dist="8.81" data-div="3.59" data-dev="-4.967" data-consec="2" data-pbr="0.71" data-ath="29.6" data-rsi="35.8" data-per="17.2" data-roe="5.0" data-w52="34.8">
-      <td>77</td>
+      <td>76</td>
       <td><div class="sc s-l"><b>32</b><div class="sf" style="width:32%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -6375,6 +6358,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">35%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">30%</td>
+    </tr><tr class="" data-score="20" data-dist="8.81" data-div="2.84" data-dev="-3.665" data-consec="0" data-pbr="1.4" data-ath="23.8" data-rsi="39.3" data-per="18.8" data-roe="0" data-w52="45.0">
+      <td>77</td>
+      <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
+      <td class="sig-cell"><span class="dim">—</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>6113.T</b></td>
+      <td>アマダ <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>2,408</td>
+      <td class="neg">-3.7%</td>
+      <td class="">+8.8%</td>
+      <td class="">2.8%</td>
+      <td class="">—</td>
+      <td class="hot">1.4</td>
+      <td class="hide-m ">19</td>
+      <td class="hide-m ">—</td>
+      <td class="hide-m ">39</td>
+      <td class="hide-m">45%</td>
+      <td class="hide-m pos">増収増益</td>
+      <td class="hide-m">24%</td>
     </tr><tr class="" data-score="37" data-dist="8.82" data-div="3.01" data-dev="1.028" data-consec="3" data-pbr="1.18" data-ath="43.5" data-rsi="55.8" data-per="15.7" data-roe="7.1" data-w52="63.4">
       <td>78</td>
       <td><div class="sc s-l"><b>37</b><div class="sf" style="width:37%"></div></div></td>
@@ -6475,7 +6478,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">30%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">24%</td>
-    </tr><tr class="" data-score="20" data-dist="9.16" data-div="0.88" data-dev="-5.17" data-consec="7" data-pbr="2.86" data-ath="19.4" data-rsi="35.7" data-per="6.7" data-roe="14.5" data-w52="48.1">
+    </tr><tr class="" data-score="20" data-dist="9.16" data-div="0.88" data-dev="-5.17" data-consec="7" data-pbr="2.93" data-ath="19.4" data-rsi="35.7" data-per="6.7" data-roe="14.5" data-w52="48.1">
       <td>83</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -6655,28 +6658,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">51%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">19%</td>
-    </tr><tr class="" data-score="25" data-dist="9.88" data-div="2.38" data-dev="-0.195" data-consec="2" data-pbr="1.61" data-ath="4.7" data-rsi="49.3" data-per="22.0" data-roe="10.2" data-w52="71.9">
-      <td>92</td>
-      <td><div class="sc s-n"><b>25</b><div class="sf" style="width:25%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>1721.T</b></td>
-      <td>コムシスHD <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>5,558</td>
-      <td class="neg">-0.2%</td>
-      <td class="">+9.9%</td>
-      <td class="">2.4%</td>
-      <td class="">2</td>
-      <td class="">1.6</td>
-      <td class="hide-m ">22</td>
-      <td class="hide-m ">10%</td>
-      <td class="hide-m ">49</td>
-      <td class="hide-m">72%</td>
-      <td class="hide-m pos">増収増益</td>
-      <td class="hide-m">5%</td>
     </tr><tr class="" data-score="20" data-dist="9.88" data-div="1.2" data-dev="1.309" data-consec="3" data-pbr="2.09" data-ath="5.4" data-rsi="57.7" data-per="23.1" data-roe="13.4" data-w52="83.4">
-      <td>93</td>
+      <td>92</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-neutral">平常圏</span></td>
@@ -6693,6 +6676,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m ">13%</td>
       <td class="hide-m ">58</td>
       <td class="hide-m">83%</td>
+      <td class="hide-m pos">増収増益</td>
+      <td class="hide-m">5%</td>
+    </tr><tr class="" data-score="25" data-dist="9.88" data-div="2.38" data-dev="-0.195" data-consec="2" data-pbr="1.61" data-ath="4.7" data-rsi="49.3" data-per="22.0" data-roe="10.2" data-w52="71.9">
+      <td>93</td>
+      <td><div class="sc s-n"><b>25</b><div class="sf" style="width:25%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>1721.T</b></td>
+      <td>コムシスHD <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>5,558</td>
+      <td class="neg">-0.2%</td>
+      <td class="">+9.9%</td>
+      <td class="">2.4%</td>
+      <td class="">2</td>
+      <td class="">1.6</td>
+      <td class="hide-m ">22</td>
+      <td class="hide-m ">10%</td>
+      <td class="hide-m ">49</td>
+      <td class="hide-m">72%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">5%</td>
     </tr><tr class="" data-score="20" data-dist="9.97" data-div="2.75" data-dev="-0.655" data-consec="1" data-pbr="1.02" data-ath="14.5" data-rsi="54.9" data-per="16.0" data-roe="9.8" data-w52="59.7">
@@ -6875,28 +6878,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">77%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">8%</td>
-    </tr><tr class="" data-score="5" data-dist="10.73" data-div="2.2" data-dev="2.967" data-consec="5" data-pbr="1.21" data-ath="10.7" data-rsi="70.9" data-per="20.1" data-roe="6.9" data-w52="56.9">
-      <td>103</td>
-      <td><div class="sc s-n"><b>5</b><div class="sf" style="width:5%"></div></div></td>
-      <td class="sig-cell"><span class="dim">—</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>9532.T</b></td>
-      <td>大阪ガス <span class="mkt">日経225</span></td>
-      <td class="hide-m">公益</td>
-      <td>5,892</td>
-      <td class="pos">+3.0%</td>
-      <td class="">+10.7%</td>
-      <td class="">2.2%</td>
-      <td class="pos">5</td>
-      <td class="hot">1.2</td>
-      <td class="hide-m ">20</td>
-      <td class="hide-m ">7%</td>
-      <td class="hide-m hot">71</td>
-      <td class="hide-m">57%</td>
-      <td class="hide-m neg">減益</td>
-      <td class="hide-m">11%</td>
     </tr><tr class="" data-score="17" data-dist="10.73" data-div="3.69" data-dev="-2.776" data-consec="3" data-pbr="1.33" data-ath="7.7" data-rsi="44.6" data-per="17.3" data-roe="11.0" data-w52="72.1">
-      <td>104</td>
+      <td>103</td>
       <td><div class="sc s-n"><b>17</b><div class="sf" style="width:17%"></div></div></td>
       <td class="sig-cell"><span class="dim">—</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -6915,6 +6898,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">72%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">8%</td>
+    </tr><tr class="" data-score="5" data-dist="10.73" data-div="2.2" data-dev="2.967" data-consec="5" data-pbr="1.21" data-ath="10.7" data-rsi="70.9" data-per="20.1" data-roe="6.9" data-w52="56.9">
+      <td>104</td>
+      <td><div class="sc s-n"><b>5</b><div class="sf" style="width:5%"></div></div></td>
+      <td class="sig-cell"><span class="dim">—</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>9532.T</b></td>
+      <td>大阪ガス <span class="mkt">日経225</span></td>
+      <td class="hide-m">公益</td>
+      <td>5,892</td>
+      <td class="pos">+3.0%</td>
+      <td class="">+10.7%</td>
+      <td class="">2.2%</td>
+      <td class="pos">5</td>
+      <td class="hot">1.2</td>
+      <td class="hide-m ">20</td>
+      <td class="hide-m ">7%</td>
+      <td class="hide-m hot">71</td>
+      <td class="hide-m">57%</td>
+      <td class="hide-m neg">減益</td>
+      <td class="hide-m">11%</td>
     </tr><tr class="" data-score="17" data-dist="10.8" data-div="2.3" data-dev="3.004" data-consec="4" data-pbr="0.91" data-ath="23.9" data-rsi="69.0" data-per="12.9" data-roe="9.4" data-w52="60.7">
       <td>105</td>
       <td><div class="sc s-n"><b>17</b><div class="sf" style="width:17%"></div></div></td>
@@ -7855,7 +7858,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">44%</td>
       <td class="hide-m ">微増</td>
       <td class="hide-m">16%</td>
-    </tr><tr class="" data-score="32" data-dist="14.3" data-div="3.37" data-dev="-1.809" data-consec="2" data-pbr="0.97" data-ath="50.1" data-rsi="43.0" data-per="9.3" data-roe="0" data-w52="17.9">
+    </tr><tr class="" data-score="32" data-dist="14.3" data-div="3.37" data-dev="-1.809" data-consec="2" data-pbr="0.99" data-ath="50.1" data-rsi="43.0" data-per="9.3" data-roe="0" data-w52="17.9">
       <td>152</td>
       <td><div class="sc s-l"><b>32</b><div class="sf" style="width:32%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
@@ -7895,28 +7898,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">33%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">48%</td>
-    </tr><tr class="" data-score="15" data-dist="14.43" data-div="1.82" data-dev="4.384" data-consec="1" data-pbr="0.91" data-ath="29.1" data-rsi="65.5" data-per="6.2" data-roe="12.4" data-w52="55.1">
-      <td>154</td>
-      <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>9202.T</b></td>
-      <td>ANA HD <span class="mkt">日経225</span></td>
-      <td class="hide-m">資本財</td>
-      <td>3,043</td>
-      <td class="pos">+4.4%</td>
-      <td class="">+14.4%</td>
-      <td class="">1.8%</td>
-      <td class="">1</td>
-      <td class="neg">0.9</td>
-      <td class="hide-m pos">6</td>
-      <td class="hide-m ">12%</td>
-      <td class="hide-m ">66</td>
-      <td class="hide-m">55%</td>
-      <td class="hide-m neg">減益</td>
-      <td class="hide-m">29%</td>
     </tr><tr class="" data-score="22" data-dist="14.43" data-div="3.07" data-dev="-3.078" data-consec="1" data-pbr="0.91" data-ath="36.3" data-rsi="30.9" data-per="19.5" data-roe="6.2" data-w52="37.7">
-      <td>155</td>
+      <td>154</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -7935,6 +7918,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">38%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">36%</td>
+    </tr><tr class="" data-score="15" data-dist="14.43" data-div="1.82" data-dev="4.384" data-consec="1" data-pbr="0.91" data-ath="29.1" data-rsi="65.5" data-per="6.2" data-roe="12.4" data-w52="55.1">
+      <td>155</td>
+      <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>9202.T</b></td>
+      <td>ANA HD <span class="mkt">日経225</span></td>
+      <td class="hide-m">資本財</td>
+      <td>3,043</td>
+      <td class="pos">+4.4%</td>
+      <td class="">+14.4%</td>
+      <td class="">1.8%</td>
+      <td class="">1</td>
+      <td class="neg">0.9</td>
+      <td class="hide-m pos">6</td>
+      <td class="hide-m ">12%</td>
+      <td class="hide-m ">66</td>
+      <td class="hide-m">55%</td>
+      <td class="hide-m neg">減益</td>
+      <td class="hide-m">29%</td>
     </tr><tr class="" data-score="10" data-dist="14.5" data-div="1.19" data-dev="3.933" data-consec="1" data-pbr="8.62" data-ath="12.1" data-rsi="67.0" data-per="38.4" data-roe="26.5" data-w52="49.1">
       <td>156</td>
       <td><div class="sc s-n"><b>10</b><div class="sf" style="width:10%"></div></div></td>
@@ -8055,28 +8058,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">18%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">27%</td>
-    </tr><tr class="" data-score="27" data-dist="14.88" data-div="3.71" data-dev="-0.665" data-consec="5" data-pbr="0.63" data-ath="35.9" data-rsi="53.0" data-per="7.2" data-roe="5.7" data-w52="39.1">
-      <td>162</td>
-      <td><div class="sc s-n"><b>27</b><div class="sf" style="width:27%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-mild">軽い押し目</span></td>
-      <td><b>5406.T</b></td>
-      <td>神戸製鋼所 <span class="mkt">日経225</span></td>
-      <td class="hide-m">素材</td>
-      <td>2,000</td>
-      <td class="neg">-0.7%</td>
-      <td class="">+14.9%</td>
-      <td class="">3.7%</td>
-      <td class="pos">5</td>
-      <td class="neg">0.6</td>
-      <td class="hide-m pos">7</td>
-      <td class="hide-m ">6%</td>
-      <td class="hide-m ">53</td>
-      <td class="hide-m">39%</td>
-      <td class="hide-m ">—</td>
-      <td class="hide-m">36%</td>
     </tr><tr class="" data-score="10" data-dist="14.88" data-div="0.28" data-dev="-3.903" data-consec="2" data-pbr="21.98" data-ath="16.7" data-rsi="33.3" data-per="146.6" data-roe="65.4" data-w52="69.9">
-      <td>163</td>
+      <td>162</td>
       <td><div class="sc s-n"><b>10</b><div class="sf" style="width:10%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-mild">軽い押し目</span></td>
@@ -8095,6 +8078,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">70%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">17%</td>
+    </tr><tr class="" data-score="27" data-dist="14.88" data-div="3.71" data-dev="-0.665" data-consec="5" data-pbr="0.63" data-ath="35.9" data-rsi="53.0" data-per="7.2" data-roe="5.7" data-w52="39.1">
+      <td>163</td>
+      <td><div class="sc s-n"><b>27</b><div class="sf" style="width:27%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-mild">軽い押し目</span></td>
+      <td><b>5406.T</b></td>
+      <td>神戸製鋼所 <span class="mkt">日経225</span></td>
+      <td class="hide-m">素材</td>
+      <td>2,000</td>
+      <td class="neg">-0.7%</td>
+      <td class="">+14.9%</td>
+      <td class="">3.7%</td>
+      <td class="pos">5</td>
+      <td class="neg">0.6</td>
+      <td class="hide-m pos">7</td>
+      <td class="hide-m ">6%</td>
+      <td class="hide-m ">53</td>
+      <td class="hide-m">39%</td>
+      <td class="hide-m ">—</td>
+      <td class="hide-m">36%</td>
     </tr><tr class="" data-score="20" data-dist="15.0" data-div="2.4" data-dev="1.145" data-consec="5" data-pbr="1.8" data-ath="20.0" data-rsi="64.4" data-per="15.9" data-roe="14.2" data-w52="46.7">
       <td>164</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
@@ -8395,7 +8398,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">91%</td>
       <td class="hide-m ">—</td>
       <td class="hide-m">32%</td>
-    </tr><tr class="" data-score="22" data-dist="16.19" data-div="3.6" data-dev="0.64" data-consec="3" data-pbr="1.17" data-ath="14.1" data-rsi="51.6" data-per="16.4" data-roe="11.5" data-w52="70.7">
+    </tr><tr class="" data-score="22" data-dist="16.19" data-div="3.6" data-dev="0.64" data-consec="3" data-pbr="1.14" data-ath="14.1" data-rsi="51.6" data-per="16.4" data-roe="11.5" data-w52="70.7">
       <td>179</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-ma">MA転換</span></td>
@@ -8408,7 +8411,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+16.2%</td>
       <td class="">3.6%</td>
       <td class="">3</td>
-      <td class="hot">1.2</td>
+      <td class="hot">1.1</td>
       <td class="hide-m ">16</td>
       <td class="hide-m ">12%</td>
       <td class="hide-m ">52</td>
@@ -8635,28 +8638,8 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">93%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">27%</td>
-    </tr><tr class="" data-score="42" data-dist="17.67" data-div="4.51" data-dev="2.091" data-consec="0" data-pbr="0.43" data-ath="64.5" data-rsi="66.9" data-per="5.6" data-roe="3.8" data-w52="29.0">
-      <td>191</td>
-      <td><div class="sc s-l"><b>42</b><div class="sf" style="width:42%"></div></div></td>
-      <td class="sig-cell"><span class="sig sig-div">高配当</span><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
-      <td><span class="zone-badge z-neutral">平常圏</span></td>
-      <td><b>5411.T</b></td>
-      <td>JFE HD <span class="mkt">日経225</span></td>
-      <td class="hide-m">素材</td>
-      <td>1,774</td>
-      <td class="pos">+2.1%</td>
-      <td class="">+17.7%</td>
-      <td class="pos">4.5%</td>
-      <td class="">—</td>
-      <td class="neg">0.4</td>
-      <td class="hide-m pos">6</td>
-      <td class="hide-m ">4%</td>
-      <td class="hide-m ">67</td>
-      <td class="hide-m">29%</td>
-      <td class="hide-m ">微増</td>
-      <td class="hide-m">64%</td>
     </tr><tr class="" data-score="22" data-dist="17.67" data-div="3.22" data-dev="8.169" data-consec="12" data-pbr="2.37" data-ath="1.6" data-rsi="81.1" data-per="33.9" data-roe="21.3" data-w52="86.5">
-      <td>192</td>
+      <td>191</td>
       <td><div class="sc s-n"><b>22</b><div class="sf" style="width:22%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
       <td><span class="zone-badge z-neutral">平常圏</span></td>
@@ -8675,6 +8658,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">86%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">2%</td>
+    </tr><tr class="" data-score="42" data-dist="17.67" data-div="4.51" data-dev="2.091" data-consec="0" data-pbr="0.43" data-ath="64.5" data-rsi="66.9" data-per="5.6" data-roe="3.8" data-w52="29.0">
+      <td>192</td>
+      <td><div class="sc s-l"><b>42</b><div class="sf" style="width:42%"></div></div></td>
+      <td class="sig-cell"><span class="sig sig-div">高配当</span><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
+      <td><span class="zone-badge z-neutral">平常圏</span></td>
+      <td><b>5411.T</b></td>
+      <td>JFE HD <span class="mkt">日経225</span></td>
+      <td class="hide-m">素材</td>
+      <td>1,774</td>
+      <td class="pos">+2.1%</td>
+      <td class="">+17.7%</td>
+      <td class="pos">4.5%</td>
+      <td class="">—</td>
+      <td class="neg">0.4</td>
+      <td class="hide-m pos">6</td>
+      <td class="hide-m ">4%</td>
+      <td class="hide-m ">67</td>
+      <td class="hide-m">29%</td>
+      <td class="hide-m ">微増</td>
+      <td class="hide-m">64%</td>
     </tr><tr class="" data-score="20" data-dist="17.67" data-div="2.78" data-dev="6.471" data-consec="9" data-pbr="1.41" data-ath="34.8" data-rsi="81.1" data-per="17.8" data-roe="9.3" data-w52="44.2">
       <td>193</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
@@ -9055,7 +9058,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">52%</td>
       <td class="hide-m neg">減益</td>
       <td class="hide-m">20%</td>
-    </tr><tr class="" data-score="15" data-dist="21.62" data-div="0.48" data-dev="12.094" data-consec="0" data-pbr="5.12" data-ath="38.7" data-rsi="80.0" data-per="39.3" data-roe="12.4" data-w52="99.1">
+    </tr><tr class="" data-score="15" data-dist="21.62" data-div="0.48" data-dev="12.094" data-consec="0" data-pbr="5.0" data-ath="38.7" data-rsi="80.0" data-per="39.3" data-roe="12.4" data-w52="99.1">
       <td>212</td>
       <td><div class="sc s-n"><b>15</b><div class="sf" style="width:15%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -9068,7 +9071,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+21.6%</td>
       <td class="">0.5%</td>
       <td class="">—</td>
-      <td class="">5.1</td>
+      <td class="">5.0</td>
       <td class="hide-m ">39</td>
       <td class="hide-m ">12%</td>
       <td class="hide-m hot">80</td>
@@ -9195,7 +9198,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="hide-m">92%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">1%</td>
-    </tr><tr class="" data-score="20" data-dist="25.12" data-div="0" data-dev="8.328" data-consec="0" data-pbr="2.56" data-ath="49.2" data-rsi="70.7" data-per="110.0" data-roe="38.5" data-w52="33.2">
+    </tr><tr class="" data-score="20" data-dist="25.12" data-div="0" data-dev="8.328" data-consec="0" data-pbr="2.07" data-ath="49.2" data-rsi="70.7" data-per="110.0" data-roe="38.5" data-w52="33.2">
       <td>219</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span><span class="sig sig-ma">MA転換</span></td>
@@ -9208,14 +9211,14 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+25.1%</td>
       <td class="">0.0%</td>
       <td class="">—</td>
-      <td class="">2.6</td>
+      <td class="">2.1</td>
       <td class="hide-m ">110</td>
       <td class="hide-m pos">38%</td>
       <td class="hide-m hot">71</td>
       <td class="hide-m">33%</td>
       <td class="hide-m pos">増収増益</td>
       <td class="hide-m">49%</td>
-    </tr><tr class="" data-score="20" data-dist="29.05" data-div="0" data-dev="-13.897" data-consec="0" data-pbr="15.77" data-ath="62.8" data-rsi="30.7" data-per="16.2" data-roe="87.1" data-w52="30.7">
+    </tr><tr class="" data-score="20" data-dist="29.05" data-div="0" data-dev="-13.897" data-consec="0" data-pbr="9.21" data-ath="62.8" data-rsi="30.7" data-per="16.2" data-roe="87.1" data-w52="30.7">
       <td>220</td>
       <td><div class="sc s-n"><b>20</b><div class="sf" style="width:20%"></div></div></td>
       <td class="sig-cell"><span class="sig sig-qual">優良割安</span></td>
@@ -9228,7 +9231,7 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
       <td class="">+29.1%</td>
       <td class="">0.0%</td>
       <td class="">—</td>
-      <td class="">15.8</td>
+      <td class="">9.2</td>
       <td class="hide-m ">16</td>
       <td class="hide-m pos">87%</td>
       <td class="hide-m ">31</td>
@@ -9343,6 +9346,26 @@ footer{text-align:center;padding:1.5rem;font-size:0.65rem;color:var(--dim);font-
 <footer>理想乖離ダッシュボード &middot; GitHub Actionsで毎営業日自動更新<br>データ: Yahoo Finance &middot; 投資判断は自己責任で行ってください</footer>
 
 <script>
+// 列の表示切替（主要列だけ／全列）。選んだ状態はこのブラウザに記憶
+function _isMobile(){return window.matchMedia('(max-width:600px)').matches}
+function _applyCols(mode){
+  document.body.classList.toggle('cols-min',mode==='min');
+  document.body.classList.toggle('cols-all',mode==='all');
+  const showingAll = mode ? mode==='all' : !_isMobile();
+  const b=document.getElementById('colbtn');
+  if(b) b.textContent = showingAll ? '主要列だけ表示' : '全列を表示';
+}
+function toggleCols(){
+  const showingAll = document.body.classList.contains('cols-all') ||
+    (!document.body.classList.contains('cols-min') && !_isMobile());
+  const mode = showingAll ? 'min' : 'all';
+  try{localStorage.setItem('cols_mode',mode)}catch(e){}
+  _applyCols(mode);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  let m=null; try{m=localStorage.getItem('cols_mode')}catch(e){}
+  _applyCols(m);
+});
 function switchTab(id,btn){
   document.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tb').forEach(b=>b.classList.remove('active'));
