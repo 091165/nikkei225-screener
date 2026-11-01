@@ -394,6 +394,7 @@ def main():
     print(f"  verdicts: {counts}")
     grades = pd.Series([r["div_grade"] for r in jp_rows]).value_counts().to_dict() if jp_rows else {}
     print(f"  dividend grades (JP): {grades}  yen_strong={ctx['yen_strong']}  vix={vix}")
+    print(f"  macro: {market['us']['macro']}  bond_yield={ctx['bond_yield']}  debt_caps_warning={debt_warn}  nikkei_per={per}")
     for t, e in failed[:20]:
         print(f"  [ERROR] {t}: {e}")
     top = sorted(rows, key=lambda r: -(r.get("madakabu") or 0))[:10]
